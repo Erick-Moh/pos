@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block title %}Sales History — {{ sys.business_name }}{% endblock %}
+{% block breadcrumb %}<i class="bi bi-receipt me-1"></i> Sales History{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-0">Sales History</h4>
+        <p class="text-muted small mb-0">Total: <strong>{{ currency }} {{ total_revenue|floatformat:2|intcomma }}</strong> across {{ sales|length|intcomma }} transactions</p>
+    </div>
+    <a href="/{{ tenant.slug }}/pos/terminal/" class="btn">
+        <i class="bi bi-plus-lg me-1"></i>New Sale
+    </a>
+</div>
+
+<!-- Filters -->
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-body py-2">
+        <form method="get" class="row g-2 align-items-center">
+            <div class="col-md-2">
+                <label class="form-label small mb-1">From</label>
+                <input type="date" name="from" value="{{ date_from }}" class="form-control form-control-sm">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small mb-1">To</label>
+                <input type="date" name="to" value="{{ date_to }}" class="form-control form-control-sm">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small mb-1">Payment</label>
+                <select name="payment" class="form-select form-select-sm">
+                    <option value="">All Methods</option>
+                    <option value="cash" {% if payment_filter == 'cash' %}selected{% endif %}>Cash</option>
+                    <option value="mpesa" {% if payment_filter == 'mpesa' %}selected{% endif %}>M-Pesa</option>
+                    <option value="card" {% if payment_filter == 'card' %}selected{% endif %}>Card</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small mb-1">Status</label>
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">All</option>
+                    <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>Completed</option>
+                    <option value="voided" {% if status_filter == 'voided' %}selected{% endif %}>Voided</option>
+                    <option value="refunded" {% if status_filter == 'refunded' %}selected{% endif %}>Refunded</option>
+                </select>
+            </div>
+            <div class="col-auto d-flex align-items-end">
+                <button type="submit" class="btn btn-sm btn-outline-primary me-1">Filter</button>
+                <a href="/{{ tenant.slug }}/pos/sales/" class="btn btn-sm btn-outline-secondary">Reset</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Table -->
+<div class="card border-0 shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th class="ps-3">Invoice</th>
+                    <th>Date / Time</th>
+                    <th>Customer</th>
+                    <th>Cashier</th>
+                    <th>Payment</th>
+                    <th>Status</th>
+                    <th class="text-end">Amount</th>
+                    <th class="text-center pe-3">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sale in sales %}
+                <tr>
+                    <td class="ps-3">
+                        <a href="/{{ tenant.slug }}/pos/sales/{{ sale.pk }}/" class="fw-medium text-decoration-none">
+                            {{ sale.invoice_number }}
+                        </a>
+                        {% if sale.is_fiscalized %}
+                        <span class="badge bg-success-subtle text-success ms-1" title="eTIMS Fiscalized">KRA ✓</span>
+                        {% endif %}
+                    </td>
+                    <td><small>{{ sale.created_at|date:"d M Y" }}<br>{{ sale.created_at|date:"H:i" }}</small></td>
+                    <td><small>{{ sale.customer.name|default:"Walk-in" }}</small></td>
+                    <td><small>{{ sale.served_by.get_full_name|default:sale.served_by.username }}</small></td>
+                    <td>
+                        <span class="badge
+                            {% if sale.payment_method == 'mpesa' %}bg-success
+                            {% elif sale.payment_method == 'card' %}bg-info
+                            {% elif sale.payment_method == 'cash' %}bg-secondary
+                            {% else %}bg-warning{% endif %}">
+                            {{ sale.get_payment_method_display }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="badge
+                            {% if sale.status == 'completed' %}bg-success
+                            {% elif sale.status == 'voided' %}bg-danger
+                            {% else %}bg-warning{% endif %}">
+                            {{ sale.get_status_display }}
+                        </span>
+                    </td>
+                    <td class="text-end fw-semibold">{{ currency }} {{ sale.total_amount|floatformat:2|intcomma }}</td>
+                    <td class="text-center pe-3">
+                        <a href="/{{ tenant.slug }}/pos/receipt/{{ sale.pk }}/" class="btn btn-sm btn-outline-secondary" title="Print Receipt" target="_blank">
+                            <i class="bi bi-printer"></i>
+                        </a>
+                        {% if user.is_admin_role and sale.status == 'completed' %}
+                        <a href="/{{ tenant.slug }}/pos/sales/{{ sale.pk }}/void/" class="btn btn-sm btn-outline-danger" title="Void">
+                            <i class="bi bi-x-circle"></i>
+                        </a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center text-muted py-5">
+                        <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+                        No sales found for the selected filters.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            {% if sales %}
+            <tfoot class="table-light">
+                <tr>
+                    <td colspan="6" class="ps-3 fw-bold">Total ({{ sales|length|intcomma }} transactions)</td>
+                    <td class="text-end fw-bold">{{ currency }} {{ total_revenue|floatformat:2|intcomma }}</td>
+                    <td></td>
+                </tr>
+            </tfoot>
+            {% endif %}
+        </table>
+    </div>
+</div>
+{% endblock %}

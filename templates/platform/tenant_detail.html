@@ -1,0 +1,247 @@
+{% extends "platform/base.html" %}
+{% load humanize %}
+{% block title %}{{ tenant.name }}{% endblock %}
+{% block breadcrumb_extra %}
+<li class="breadcrumb-item">
+    <a href="{% url 'platform:tenant_list' %}" class="text-muted text-decoration-none small">Clients</a>
+</li>
+{% endblock %}
+{% block page_title %}{{ tenant.name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <div class="d-flex align-items-center gap-2 mb-1">
+            <h4 class="fw-bold mb-0">{{ tenant.name }}</h4>
+            <span class="badge {% if tenant.is_active %}badge-active{% else %}badge-inactive{% endif %}">
+                {% if tenant.is_active %}Active{% else %}Inactive{% endif %}
+            </span>
+        </div>
+        <p class="text-muted small mb-0">
+            Ref: <code>{{ tenant.reference_code }}</code> &bull;
+            Access: <code>/{{ tenant.slug }}/</code> &bull;
+            {{ tenant.get_plan_display }}
+        </p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="/{{ tenant.slug }}/pos/" target="_blank" class="btn btn-outline-secondary btn-sm px-3">
+            <i class="bi bi-box-arrow-up-right me-1"></i>Open Workspace
+        </a>
+        <a href="{% url 'platform:tenant_edit' tenant.pk %}" class="btn btn-platform btn-sm px-3">
+            <i class="bi bi-pencil me-1"></i>Edit
+        </a>
+        <a href="{% url 'platform:tenant_toggle' tenant.pk %}"
+           class="btn btn-sm btn-outline-{% if tenant.is_active %}warning{% else %}success{% endif %} px-3"
+           onclick="return confirm('{% if tenant.is_active %}Deactivate{% else %}Activate{% endif %} {{ tenant.name }}?')">
+            {% if tenant.is_active %}Deactivate{% else %}Activate{% endif %}
+        </a>
+    </div>
+</div>
+
+<!-- Stats row -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+        <div class="p-kpi">
+            <div class="p-kpi-icon" style="background:rgba(16,185,129,.1);">
+                <i class="bi bi-cash-coin" style="color:#10b981;"></i>
+            </div>
+            <div class="p-kpi-value">KSh {{ today_rev|floatformat:0|intcomma }}</div>
+            <div class="p-kpi-label">Revenue Today</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="p-kpi">
+            <div class="p-kpi-icon" style="background:rgba(59,130,246,.1);">
+                <i class="bi bi-graph-up" style="color:#3b82f6;"></i>
+            </div>
+            <div class="p-kpi-value">KSh {{ month_rev|floatformat:0|intcomma }}</div>
+            <div class="p-kpi-label">Revenue This Month</div>
+            <div class="mt-1 small text-muted">{{ month_tx }} transactions</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="p-kpi">
+            <div class="p-kpi-icon" style="background:rgba(139,92,246,.1);">
+                <i class="bi bi-boxes" style="color:#8b5cf6;"></i>
+            </div>
+            <div class="p-kpi-value">{{ products|intcomma }}</div>
+            <div class="p-kpi-label">Active Products</div>
+            {% if low_stock > 0 %}
+            <div class="mt-1 small text-warning"><i class="bi bi-exclamation-triangle me-1"></i>{{ low_stock }} low stock</div>
+            {% endif %}
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="p-kpi">
+            <div class="p-kpi-icon" style="background:rgba(245,158,11,.1);">
+                <i class="bi bi-people" style="color:#f59e0b;"></i>
+            </div>
+            <div class="p-kpi-value">{{ users.count }}</div>
+            <div class="p-kpi-label">Staff Accounts</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+
+    <!-- Tenant details -->
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header border-0 pt-3">
+                <h6 class="fw-semibold mb-0"><i class="bi bi-building me-2 text-muted"></i>Client Info</h6>
+            </div>
+            <div class="card-body">
+                <dl class="row small mb-0">
+                    <dt class="col-5 text-muted fw-normal">Name</dt>
+                    <dd class="col-7 fw-semibold">{{ tenant.name }}</dd>
+                    <dt class="col-5 text-muted fw-normal">Slug</dt>
+                    <dd class="col-7"><code>{{ tenant.slug }}</code></dd>
+                    <dt class="col-5 text-muted fw-normal">Ref Code</dt>
+                    <dd class="col-7"><code>{{ tenant.reference_code }}</code></dd>
+                    <dt class="col-5 text-muted fw-normal">Plan</dt>
+                    <dd class="col-7">{{ tenant.get_plan_display }}</dd>
+                    <dt class="col-5 text-muted fw-normal">Owner</dt>
+                    <dd class="col-7">{{ tenant.owner_name|default:"—" }}</dd>
+                    <dt class="col-5 text-muted fw-normal">Email</dt>
+                    <dd class="col-7">
+                        {% if tenant.owner_email %}
+                        <a href="mailto:{{ tenant.owner_email }}" class="text-decoration-none">{{ tenant.owner_email }}</a>
+                        {% else %}—{% endif %}
+                    </dd>
+                    <dt class="col-5 text-muted fw-normal">Phone</dt>
+                    <dd class="col-7">{{ tenant.owner_phone|default:"—" }}</dd>
+                    <dt class="col-5 text-muted fw-normal">Created</dt>
+                    <dd class="col-7">{{ tenant.created_at|date:"d M Y" }}</dd>
+                </dl>
+            </div>
+        </div>
+
+        <!-- Branding snapshot -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-header border-0 pt-3">
+                <h6 class="fw-semibold mb-0"><i class="bi bi-palette me-2 text-muted"></i>Branding</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    {% if sys.logo %}
+                    <img src="{{ sys.logo.url }}" height="40" class="rounded border" style="object-fit:contain;">
+                    {% else %}
+                    <div class="rounded d-flex align-items-center justify-content-center bg-light border"
+                         style="width:56px;height:40px;font-size:.7rem;color:#94a3b8;">No logo</div>
+                    {% endif %}
+                    <div>
+                        <div class="fw-semibold small">{{ sys.business_name|default:tenant.name }}</div>
+                        <div class="text-muted" style="font-size:11px;">{{ sys.currency_symbol }} {{ sys.currency_code }}</div>
+                    </div>
+                </div>
+                <div class="d-flex gap-2">
+                    <div class="rounded" style="width:28px;height:28px;background:{{ sys.primary_color }};border:1px solid #e2e8f0;" title="Primary: {{ sys.primary_color }}"></div>
+                    <div class="rounded" style="width:28px;height:28px;background:{{ sys.secondary_color }};border:1px solid #e2e8f0;" title="Secondary: {{ sys.secondary_color }}"></div>
+                    <div class="rounded" style="width:28px;height:28px;background:{{ sys.accent_color }};border:1px solid #e2e8f0;" title="Accent: {{ sys.accent_color }}"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Users -->
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header border-0 pt-3 d-flex justify-content-between align-items-center">
+                <h6 class="fw-semibold mb-0"><i class="bi bi-people me-2 text-muted"></i>Staff Accounts ({{ users.count }})</h6>
+                <a href="/{{ tenant.slug }}/users/manage/create/" target="_blank"
+                   class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-plus me-1"></i>Add User
+                </a>
+            </div>
+            <div class="table-responsive">
+                <table class="table p-table mb-0">
+                    <thead>
+                        <tr>
+                            <th class="ps-4">Name</th>
+                            <th>Username</th>
+                            <th>Role</th>
+                            <th>Login</th>
+                            <th>Status</th>
+                            <th class="pe-4">Last Login</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for u in users %}
+                        <tr>
+                            <td class="ps-4 fw-medium">{{ u.get_full_name|default:"—" }}</td>
+                            <td><code class="small">{{ u.username }}</code></td>
+                            <td>
+                                <span class="badge {% if u.role == 'admin' %}bg-danger{% elif u.role == 'manager' %}bg-warning text-dark{% elif u.role == 'cashier' %}bg-primary{% else %}bg-secondary{% endif %}">
+                                    {{ u.get_role_display }}
+                                </span>
+                            </td>
+                            <td class="small">
+                                {% if u.is_floor_staff %}
+                                <span class="text-info"><i class="bi bi-person-badge me-1"></i>PIN</span>
+                                {% else %}
+                                <span class="text-success"><i class="bi bi-shield-lock me-1"></i>Password</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge {% if u.is_active %}badge-active{% else %}badge-inactive{% endif %}">
+                                    {% if u.is_active %}Active{% else %}Inactive{% endif %}
+                                </span>
+                            </td>
+                            <td class="pe-4 text-muted small">{{ u.last_login|date:"d M H:i"|default:"Never" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="6" class="text-center py-3 text-muted small">No users yet.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Recent sales -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-header border-0 pt-3 d-flex justify-content-between align-items-center">
+                <h6 class="fw-semibold mb-0"><i class="bi bi-receipt me-2 text-muted"></i>Recent Transactions</h6>
+                <a href="/{{ tenant.slug }}/pos/sales/" target="_blank"
+                   class="btn btn-sm btn-outline-secondary">View All</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table p-table mb-0">
+                    <thead>
+                        <tr>
+                            <th class="ps-4">Invoice</th>
+                            <th>Date</th>
+                            <th>Payment</th>
+                            <th>Status</th>
+                            <th class="pe-4 text-end">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for sale in recent_sales %}
+                        <tr>
+                            <td class="ps-4"><code class="small">{{ sale.invoice_number }}</code></td>
+                            <td class="small text-muted">{{ sale.created_at|date:"d M H:i" }}</td>
+                            <td>
+                                <span class="badge {% if sale.payment_method == 'mpesa' %}bg-success{% elif sale.payment_method == 'card' %}bg-info{% else %}bg-secondary{% endif %}">
+                                    {{ sale.get_payment_method_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge {% if sale.status == 'completed' %}badge-active{% elif sale.status == 'voided' %}badge-inactive{% else %}badge-trial{% endif %}">
+                                    {{ sale.get_status_display }}
+                                </span>
+                            </td>
+                            <td class="pe-4 text-end fw-semibold small">
+                                {{ sys.currency_symbol }} {{ sale.total_amount|floatformat:2|intcomma }}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5" class="text-center py-3 text-muted small">No transactions yet.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

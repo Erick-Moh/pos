@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="{% if sys.dark_mode %}dark{% else %}light{% endif %}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{% if sys.business_name %}{{ sys.business_name }}{% else %}GetCore{% endif %}{% endblock %}</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    {% load static %}
+    <link href="{% static 'css/style.css' %}" rel="stylesheet">
+
+    <style>
+        :root {
+            --nexus-primary: {{ sys.primary_color|default:"#10b981" }};
+            --nexus-secondary: {{ sys.secondary_color|default:"#0d6efd" }};
+            --nexus-accent: {{ sys.accent_color|default:"#f59e0b" }};
+        }
+    </style>
+
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+{% if user.is_authenticated %}
+<!-- ═══════════════ SIDEBAR ═══════════════ -->
+<div class="d-flex" id="wrapper">
+    <div class="sidebar d-flex flex-column flex-shrink-0 p-3 text-white" style="width:260px; min-height:100vh;">
+
+        <!-- Brand -->
+        <a href="/{{ tenant.slug }}/pos/" class="d-flex align-items-center mb-4 text-white text-decoration-none">
+            {% if sys.logo %}
+                <img src="{{ sys.logo.url }}" alt="{{ sys.business_name }}" height="40" class="me-2">
+            {% else %}
+                <i class="bi bi-rocket-takeoff-fill fs-3 me-2" style="color:var(--nexus-accent);"></i>
+                <span class="fw-bold fs-5">{{ sys.business_name|default:"GetCore" }}</span>
+            {% endif %}
+        </a>
+
+        <hr class="border-white opacity-25">
+
+        <!-- User badge -->
+        <div class="d-flex align-items-center mb-3 px-1">
+            <div class="rounded-circle bg-white text-dark d-flex align-items-center justify-content-center me-2"
+                 style="width:32px;height:32px;font-size:0.8rem;font-weight:700;">
+                {{ user.first_name.0|default:user.username.0|upper }}
+            </div>
+            <div>
+                <div class="small fw-semibold">{{ user.get_full_name|default:user.username }}</div>
+                <div class="small opacity-75">{{ user.get_role_display }}</div>
+            </div>
+        </div>
+
+        <hr class="border-white opacity-25">
+
+        <!-- Nav links — built with direct paths to avoid namespace resolution errors -->
+        <ul class="nav nav-pills flex-column mb-auto nav-sidebar">
+
+            <li class="nav-item mb-1">
+                <a href="/{{ tenant.slug }}/pos/" class="nav-link text-white {% if request.resolver_match.url_name == 'dashboard' and request.resolver_match.app_name == 'pos' %}active{% endif %}">
+                    <i class="bi bi-speedometer2 me-2"></i>Dashboard
+                </a>
+            </li>
+            <li class="nav-item mb-1">
+                <a href="/{{ tenant.slug }}/pos/terminal/" class="nav-link text-white {% if request.resolver_match.url_name == 'terminal' %}active{% endif %}">
+                    <i class="bi bi-cart3 me-2"></i>POS Terminal
+                </a>
+            </li>
+            <li class="nav-item mb-1">
+                <a href="/{{ tenant.slug }}/pos/sales/" class="nav-link text-white {% if request.resolver_match.url_name == 'sale_list' %}active{% endif %}">
+                    <i class="bi bi-receipt me-2"></i>Sales History
+                </a>
+            </li>
+            <li class="nav-item mb-1">
+                <a href="/{{ tenant.slug }}/inventory/" class="nav-link text-white {% if request.resolver_match.app_name == 'inventory' %}active{% endif %}">
+                    <i class="bi bi-boxes me-2"></i>Inventory
+                </a>
+            </li>
+
+            {% if user.is_admin_role %}
+            <hr class="border-white opacity-25 my-2">
+            <small class="text-white opacity-50 px-2 mb-1 text-uppercase" style="font-size:0.7rem;">Management</small>
+
+            <li class="nav-item mb-1">
+                <a href="/{{ tenant.slug }}/finance/" class="nav-link text-white {% if request.resolver_match.app_name == 'finance' %}active{% endif %}">
+                    <i class="bi bi-graph-up-arrow me-2"></i>Finance
+                </a>
+            </li>
+            <li class="nav-item mb-1">
+                <a href="/{{ tenant.slug }}/users/manage/" class="nav-link text-white {% if request.resolver_match.url_name == 'user_list' %}active{% endif %}">
+                    <i class="bi bi-people me-2"></i>Users
+                </a>
+            </li>
+            <li class="nav-item mb-1">
+                <a href="/{{ tenant.slug }}/settings/" class="nav-link text-white {% if request.resolver_match.app_name == 'settings_app' %}active{% endif %}">
+                    <i class="bi bi-gear me-2"></i>Settings
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+
+        <hr class="border-white opacity-25">
+
+        <a href="/{{ tenant.slug }}/users/logout/" class="nav-link text-white px-2">
+            <i class="bi bi-box-arrow-left me-2"></i>Logout
+        </a>
+    </div>
+
+    <!-- ═══════════════ MAIN CONTENT ═══════════════ -->
+    <div id="page-content-wrapper">
+
+        <!-- Topbar -->
+        <div class="nexus-topbar">
+            <button class="btn btn-sm btn-outline-secondary" id="sidebarToggle" title="Toggle sidebar">
+                <i class="bi bi-list"></i>
+            </button>
+            <nav aria-label="breadcrumb" class="flex-grow-1">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item active text-muted small">
+                        {% block breadcrumb %}{% endblock %}
+                    </li>
+                </ol>
+            </nav>
+            <div class="d-flex align-items-center gap-2 ms-auto">
+                {% if low_stock_alert_count %}
+                <a href="/{{ tenant.slug }}/inventory/?low_stock=1"
+                   class="btn btn-sm btn-warning position-relative"
+                   title="{{ low_stock_alert_count }} product(s) low on stock">
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                    <span class="badge rounded-pill bg-danger ms-1">{{ low_stock_alert_count }}</span>
+                </a>
+                {% endif %}
+                <a href="/{{ tenant.slug }}/users/profile/" class="d-flex align-items-center gap-2 text-decoration-none text-reset">
+                    <div class="sidebar-user-badge" style="background:rgba(var(--nexus-primary-rgb),.12);color:var(--nexus-primary);border-color:rgba(var(--nexus-primary-rgb),.25);">
+                        {{ user.first_name.0|default:user.username.0|upper }}
+                    </div>
+                    <span class="small fw-medium d-none d-md-inline">{{ user.get_full_name|default:user.username }}</span>
+                </a>
+                <a href="/{{ tenant.slug }}/users/logout/" class="btn btn-sm btn-outline-secondary" title="Logout">
+                    <i class="bi bi-box-arrow-right"></i>
+                </a>
+            </div>
+        </div>
+
+        <!-- Flash Messages -->
+        <div class="px-4 pt-3">
+            {% for message in messages %}
+            {% with tag=message.tags %}
+            <div class="alert alert-dismissible fade show
+                {% if tag == 'success' %}alert-success
+                {% elif tag == 'error' or tag == 'danger' %}alert-danger
+                {% elif tag == 'warning' %}alert-warning
+                {% elif tag == 'debug' %}alert-secondary
+                {% else %}alert-info{% endif %}"
+                role="alert">
+                <i class="bi bi-{% if tag == 'success' %}check-circle-fill{% elif tag == 'error' or tag == 'danger' %}x-circle-fill{% elif tag == 'warning' %}exclamation-triangle-fill{% else %}info-circle-fill{% endif %} me-2"></i>
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endwith %}
+            {% endfor %}
+        </div>
+
+        <!-- Page Content -->
+        <div class="nexus-content">
+            {% block content %}{% endblock %}
+        </div>
+
+    </div><!-- /#page-content-wrapper -->
+</div><!-- /#wrapper -->
+
+{% else %}
+{% block auth_content %}{% endblock %}
+{% endif %}
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="{% static 'js/main.js' %}"></script>
+
+<script>
+document.getElementById('sidebarToggle')?.addEventListener('click', function() {
+    document.getElementById('wrapper').classList.toggle('sidebar-collapsed');
+});
+$(document).ready(function() {
+    $('.select2').select2({ theme: 'bootstrap-5', width: '100%' });
+});
+</script>
+
+{% block extra_scripts %}{% endblock %}
+</body>
+</html>

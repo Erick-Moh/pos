@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block title %}Yearly Report {{ year }} — {{ sys.business_name }}{% endblock %}
+{% block breadcrumb %}<i class="bi bi-graph-up me-1"></i> Yearly Report{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-0">Yearly Performance — {{ year }}</h4>
+        <p class="text-muted small mb-0">Revenue, COGS, and gross profit by month</p>
+    </div>
+    <form method="get" class="d-flex gap-2">
+        <select name="year" class="form-select form-select-sm">
+            {% for y in years %}
+            <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-sm btn-outline-primary">Load</button>
+    </form>
+</div>
+
+<!-- KPIs -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-4">
+        <div class="card border-0 shadow-sm text-center p-3">
+            <div class="text-muted small">Total Revenue</div>
+            <div class="h3 fw-bold" style="color:var(--nexus-primary);">{{ currency }} {{ yearly_total|floatformat:2|intcomma }}</div>
+        </div>
+    </div>
+    <div class="col-sm-4">
+        <div class="card border-0 shadow-sm text-center p-3">
+            <div class="text-muted small">Total COGS</div>
+            <div class="h3 fw-bold text-danger">{{ currency }} {{ yearly_cogs|floatformat:2|intcomma }}</div>
+        </div>
+    </div>
+    <div class="col-sm-4">
+        <div class="card border-0 shadow-sm text-center p-3">
+            <div class="text-muted small">Gross Profit</div>
+            <div class="h3 fw-bold text-success">{{ currency }} {{ yearly_profit|floatformat:2|intcomma }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- Chart -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-transparent border-0 pt-3">
+        <h6 class="fw-semibold">Revenue vs COGS vs Profit — {{ year }}</h6>
+    </div>
+    <div class="card-body">
+        <canvas id="yearlyChart" height="80"></canvas>
+    </div>
+</div>
+
+<!-- Monthly breakdown table -->
+<div class="card border-0 shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th class="ps-3">Month</th>
+                    <th class="text-end">Revenue</th>
+                    <th class="text-end">COGS</th>
+                    <th class="text-end">Gross Profit</th>
+                    <th class="text-end pe-3">Margin %</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in monthly_data %}
+                <tr>
+                    <td class="ps-3 fw-medium">{{ row.month }}</td>
+                    <td class="text-end">{{ currency }} {{ row.revenue|floatformat:2|intcomma }}</td>
+                    <td class="text-end text-danger">{{ currency }} {{ row.cogs|floatformat:2|intcomma }}</td>
+                    <td class="text-end {% if row.profit > 0 %}text-success{% else %}text-danger{% endif %}">
+                        {{ currency }} {{ row.profit|floatformat:2|intcomma }}
+                    </td>
+                    <td class="text-end pe-3">
+                        {% if row.revenue > 0 %}
+                        {% widthratio row.profit row.revenue 100 %}%
+                        {% else %}—{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot class="table-light fw-bold">
+                <tr>
+                    <td class="ps-3">TOTAL {{ year }}</td>
+                    <td class="text-end">{{ currency }} {{ yearly_total|floatformat:2|intcomma }}</td>
+                    <td class="text-end text-danger">{{ currency }} {{ yearly_cogs|floatformat:2|intcomma }}</td>
+                    <td class="text-end text-success">{{ currency }} {{ yearly_profit|floatformat:2|intcomma }}</td>
+                    <td class="text-end pe-3">
+                        {% if yearly_total > 0 %}{% widthratio yearly_profit yearly_total 100 %}%{% endif %}
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const PRIMARY = getComputedStyle(document.documentElement).getPropertyValue('--nexus-primary').trim() || '#0d6efd';
+const data = {{ monthly_data|safe }};
+
+new Chart(document.getElementById('yearlyChart'), {
+    type: 'bar',
+    data: {
+        labels: data.map(d => d.month),
+        datasets: [
+            { label: 'Revenue', data: data.map(d => d.revenue), backgroundColor: PRIMARY + '55', borderColor: PRIMARY, borderWidth: 2, borderRadius: 4 },
+            { label: 'COGS', data: data.map(d => d.cogs), backgroundColor: '#dc354533', borderColor: '#dc3545', borderWidth: 2, borderRadius: 4 },
+            { label: 'Profit', data: data.map(d => d.profit), backgroundColor: '#19875444', borderColor: '#198754', borderWidth: 2, borderRadius: 4 },
+        ]
+    },
+    options: {
+        responsive: true,
+        plugins: { legend: { position: 'top' } },
+        scales: { y: { beginAtZero: true } }
+    }
+});
+</script>
+{% endblock %}

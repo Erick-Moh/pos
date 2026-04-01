@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}{{ action }} Category — {{ sys.business_name }}{% endblock %}
+{% block breadcrumb %}
+    <a href="/{{ tenant.slug }}/inventory/" class="text-muted text-decoration-none">Inventory</a> /
+    <a href="/{{ tenant.slug }}/inventory/categories/" class="text-muted text-decoration-none">Categories</a>
+    / {{ action }}
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6 col-xl-5">
+        <div class="form-page-card">
+            <div class="form-page-header" style="background:linear-gradient(90deg,rgba(var(--nexus-primary-rgb),.05) 0%,transparent 100%);">
+                <div class="d-flex align-items-center gap-3">
+                    <div style="width:40px;height:40px;border-radius:10px;background:rgba(var(--nexus-primary-rgb),.1);display:flex;align-items:center;justify-content:center;">
+                        <i class="bi bi-tags" style="color:var(--nexus-primary);font-size:1.1rem;"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold mb-0">{{ action }} Category</h5>
+                        <p class="text-muted small mb-0">Group products into searchable categories</p>
+                    </div>
+                </div>
+            </div>
+            <form method="post" novalidate>
+                {% csrf_token %}
+                {% if form.non_field_errors %}
+                <div class="alert alert-danger mx-4 mt-4">{{ form.non_field_errors }}</div>
+                {% endif %}
+                <div class="form-page-body">
+                    <div class="mb-3">
+                        <label class="form-label" for="{{ form.name.id_for_label }}">Category Name <span class="required-star">*</span></label>
+                        {{ form.name }}
+                        {% for e in form.name.errors %}<div class="field-error"><i class="bi bi-exclamation-circle"></i>{{ e }}</div>{% endfor %}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="{{ form.parent.id_for_label }}">Parent Category</label>
+                        {{ form.parent }}
+                        <div class="form-text">Leave blank for a top-level category.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="{{ form.icon.id_for_label }}">Bootstrap Icon Class</label>
+                        {{ form.icon }}
+                        <div class="form-text">e.g. <code>bi-box-seam</code> — see <a href="https://icons.getbootstrap.com" target="_blank">icons.getbootstrap.com ↗</a></div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label" for="{{ form.description.id_for_label }}">Description</label>
+                        {{ form.description }}
+                    </div>
+                    <div class="d-flex align-items-center gap-3 p-3 rounded-3" style="background:var(--nexus-bg);border:1.5px solid var(--nexus-border);">
+                        {{ form.is_active }}
+                        <div>
+                            <div class="fw-semibold" style="font-size:13px;">Active category</div>
+                            <div class="text-muted" style="font-size:11.5px;">Inactive categories are hidden from filters</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-page-footer">
+                    <button type="submit" class="btn btn-nexus px-5">
+                        <i class="bi bi-check-lg me-1"></i>Save Category
+                    </button>
+                    <a href="/{{ tenant.slug }}/inventory/categories/" class="btn btn-outline-secondary px-4">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

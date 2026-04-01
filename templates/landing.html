@@ -1,0 +1,519 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GetCore — Smart ERP & POS for Kenya</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #10b981;
+            --primary-dark: #059669;
+            --accent: #ffc107;
+            --text: #0f172a;
+            --muted: #64748b;
+            --border: #e2e8f0;
+            --surface: #ffffff;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            color: var(--text);
+            background: #f8fafc;
+            line-height: 1.6;
+        }
+
+        /* ── Navbar ── */
+        .landing-nav {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+            background: rgba(255,255,255,.92);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            padding: 14px 0;
+        }
+        .nav-brand {
+            display: flex; align-items: center; gap: 10px;
+            font-weight: 800; font-size: 1.2rem; color: var(--text);
+            text-decoration: none;
+        }
+        .nav-brand .logo-icon {
+            width: 36px; height: 36px; border-radius: 10px;
+            background: var(--primary);
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-size: 1.1rem;
+        }
+
+        /* ── Hero ── */
+        .hero {
+            padding: 140px 0 100px;
+            background: linear-gradient(135deg, #10b98108 0%, #ffffff 50%, #f59e0b08 100%);
+            position: relative;
+            overflow: hidden;
+        }
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -200px; right: -200px;
+            width: 600px; height: 600px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(16,185,129,.06) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .hero-badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            background: rgba(16,185,129,.08); color: var(--primary);
+            border: 1px solid rgba(16,185,129,.2);
+            border-radius: 50px; padding: 5px 14px;
+            font-size: 12px; font-weight: 600;
+            letter-spacing: .04em; text-transform: uppercase;
+            margin-bottom: 24px;
+        }
+
+        .hero-title {
+            font-size: clamp(2.2rem, 5vw, 3.6rem);
+            font-weight: 800; line-height: 1.15;
+            letter-spacing: -.03em;
+            margin-bottom: 20px;
+        }
+        .hero-title .highlight {
+            background: linear-gradient(135deg, var(--primary) 0%, #06b6d4 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-sub {
+            font-size: 1.1rem; color: var(--muted);
+            max-width: 560px; margin-bottom: 36px; line-height: 1.7;
+        }
+
+        .hero-cta-group {
+            display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+        }
+
+        .btn-hero-primary {
+            background: var(--primary); color: white; border: none;
+            padding: 14px 28px; border-radius: 10px;
+            font-size: 15px; font-weight: 600;
+            text-decoration: none; display: inline-flex; align-items: center; gap: 8px;
+            transition: all .2s; box-shadow: 0 4px 14px rgba(16,185,129,.35);
+        }
+        .btn-hero-primary:hover {
+            background: var(--primary-dark); color: white;
+            transform: translateY(-2px); box-shadow: 0 8px 20px rgba(16,185,129,.4);
+        }
+
+        .btn-hero-secondary {
+            color: var(--text); border: 1.5px solid var(--border);
+            padding: 13px 24px; border-radius: 10px;
+            font-size: 15px; font-weight: 500;
+            text-decoration: none; display: inline-flex; align-items: center; gap: 8px;
+            background: white; transition: all .2s;
+        }
+        .btn-hero-secondary:hover {
+            border-color: var(--primary); color: var(--primary);
+            box-shadow: 0 2px 8px rgba(13,110,253,.1);
+        }
+
+        /* ── Access key demo box ── */
+        .access-demo {
+            background: white; border: 1.5px solid var(--border);
+            border-radius: 14px; padding: 20px 24px;
+            box-shadow: 0 4px 20px rgba(0,0,0,.06);
+            display: inline-flex; align-items: center; gap: 14px;
+            margin-top: 32px; max-width: 100%;
+        }
+        .access-demo code {
+            background: #f1f5f9; border: 1px solid #e2e8f0;
+            border-radius: 8px; padding: 8px 16px;
+            font-size: 14px; color: var(--primary); font-weight: 600;
+            letter-spacing: .02em;
+        }
+        .access-demo .arrow { color: var(--muted); font-size: 1.2rem; }
+
+        /* ── Features grid ── */
+        .features-section { padding: 100px 0; background: white; }
+
+        .section-label {
+            font-size: 11px; font-weight: 700; letter-spacing: .1em;
+            text-transform: uppercase; color: var(--primary); margin-bottom: 12px;
+        }
+        .section-title {
+            font-size: clamp(1.6rem, 3vw, 2.2rem);
+            font-weight: 700; line-height: 1.25; margin-bottom: 16px;
+        }
+        .section-sub { color: var(--muted); font-size: 1rem; max-width: 500px; }
+
+        .feature-card {
+            padding: 28px; border-radius: 14px;
+            border: 1.5px solid var(--border);
+            background: white; height: 100%;
+            transition: all .2s;
+        }
+        .feature-card:hover {
+            border-color: var(--primary);
+            box-shadow: 0 8px 24px rgba(16,185,129,.1);
+            transform: translateY(-3px);
+        }
+        .feature-icon {
+            width: 48px; height: 48px; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.4rem; margin-bottom: 16px;
+        }
+        .feature-card h5 { font-size: 1rem; font-weight: 700; margin-bottom: 8px; }
+        .feature-card p  { font-size: 13.5px; color: var(--muted); margin: 0; }
+
+        /* ── How it works ── */
+        .how-section { padding: 100px 0; background: #f8fafc; }
+
+        .step-number {
+            width: 44px; height: 44px; border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), #059669); color: white;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1rem; font-weight: 800; flex-shrink: 0;
+        }
+        .step-connector {
+            width: 2px; height: 40px; background: var(--border);
+            margin: 6px auto;
+        }
+
+        /* ── Contact / CTA section ── */
+        .cta-section {
+            padding: 100px 0;
+            background: linear-gradient(135deg, #059669 0%, #0d9488 100%);
+            color: white; text-align: center;
+            position: relative; overflow: hidden;
+        }
+        .cta-section::before {
+            content: '';
+            position: absolute; inset: 0;
+            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        }
+
+        .cta-title   { font-size: clamp(1.8rem, 4vw, 2.8rem); font-weight: 800; margin-bottom: 16px; }
+        .cta-sub     { font-size: 1.05rem; opacity: .85; max-width: 500px; margin: 0 auto 36px; }
+
+        .contact-card {
+            background: rgba(255,255,255,.12);
+            border: 1px solid rgba(255,255,255,.2);
+            border-radius: 14px; padding: 24px 28px;
+            backdrop-filter: blur(8px);
+            text-align: left; color: white;
+        }
+        .contact-card a { color: var(--accent); text-decoration: none; font-weight: 600; }
+        .contact-card a:hover { text-decoration: underline; }
+
+        /* ── Key entry form ── */
+        .key-form {
+            display: flex; gap: 8px; max-width: 440px; margin: 0 auto;
+        }
+        .key-form input {
+            flex: 1; padding: 13px 18px; border-radius: 10px;
+            border: 2px solid rgba(255,255,255,.3);
+            background: rgba(255,255,255,.15);
+            color: white; font-size: 14px; font-weight: 500;
+            outline: none; backdrop-filter: blur(4px);
+        }
+        .key-form input::placeholder { color: rgba(255,255,255,.6); }
+        .key-form input:focus { border-color: rgba(255,255,255,.7); background: rgba(255,255,255,.2); }
+        .key-form button {
+            padding: 13px 22px; border-radius: 10px;
+            background: var(--accent); border: none;
+            color: #000; font-weight: 700; font-size: 14px;
+            cursor: pointer; transition: all .2s; white-space: nowrap;
+        }
+        .key-form button:hover { filter: brightness(1.08); transform: translateY(-1px); }
+
+        /* ── Footer ── */
+        .landing-footer {
+            background: var(--text); color: rgba(255,255,255,.6);
+            padding: 40px 0; text-align: center; font-size: 13px;
+        }
+        .landing-footer a { color: rgba(255,255,255,.5); text-decoration: none; }
+        .landing-footer a:hover { color: white; }
+
+        /* ── Stats bar ── */
+        .stats-bar { background: linear-gradient(135deg, #059669 0%, #0d9488 100%); color: white; padding: 20px 0; }
+        .stat-item { text-align: center; }
+        .stat-value { font-size: 2rem; font-weight: 800; line-height: 1; }
+        .stat-label { font-size: 12px; opacity: .8; margin-top: 2px; }
+
+        /* ── Responsive ── */
+        @media (max-width: 767px) {
+            .hero { padding: 100px 0 60px; }
+            .hero-cta-group { flex-direction: column; align-items: flex-start; }
+            .key-form { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ─── Navbar ─────────────────────────────────────────── -->
+<nav class="landing-nav">
+    <div class="container d-flex justify-content-between align-items-center">
+        <a href="/" class="nav-brand">
+            <div class="logo-icon"><i class="bi bi-rocket-takeoff-fill"></i></div>
+            GetCore
+        </a>
+        <div class="d-flex align-items-center gap-3">
+            <a href="#features"    class="d-none d-md-inline text-muted text-decoration-none small fw-medium">Features</a>
+            <a href="#how-it-works"class="d-none d-md-inline text-muted text-decoration-none small fw-medium">How it works</a>
+            <a href="#contact"     class="d-none d-md-inline text-muted text-decoration-none small fw-medium">Contact</a>
+            <a href="#get-access"  class="btn-hero-primary" style="padding:9px 18px;font-size:13px;">
+                <i class="bi bi-key-fill"></i>Get Access
+            </a>
+        </div>
+    </div>
+</nav>
+
+
+<!-- ─── Hero ──────────────────────────────────────────── -->
+<section class="hero">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-7">
+                <div class="hero-badge">
+                    <i class="bi bi-geo-alt-fill"></i> Built for Kenyan Businesses
+                </div>
+                <h1 class="hero-title">
+                    <span class="highlight">GetCore</span> — The Smart ERP<br>
+                    &amp; POS Platform<br>
+                    for Every Business in Kenya
+                </h1>
+                <p class="hero-sub">
+                    Boutiques, agrovets, liquor stores, hotels &amp; restaurants — manage
+                    inventory, sales, finance, and staff with one powerful platform.
+                    M-Pesa ready. eTIMS compliant.
+                </p>
+                <div class="hero-cta-group">
+                    <a href="#get-access" class="btn-hero-primary">
+                        <i class="bi bi-rocket-takeoff-fill"></i>Get Your Access Key
+                    </a>
+                    <a href="#features" class="btn-hero-secondary">
+                        <i class="bi bi-play-circle"></i>See Features
+                    </a>
+                </div>
+
+                <!-- Access key illustration -->
+                <div class="access-demo">
+                    <div>
+                        <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:4px;">Your access URL looks like:</div>
+                        <code>getcore.co.ke/<strong>your-business-name</strong>/pos/</code>
+                    </div>
+                    <div class="arrow"><i class="bi bi-arrow-right"></i></div>
+                    <div style="font-size:12px;color:var(--muted);max-width:160px;">Your private workspace. Nobody else can access it.</div>
+                </div>
+            </div>
+
+            <div class="col-lg-5 d-none d-lg-block">
+                <!-- Abstract dashboard preview -->
+                <div class="p-4" style="background:white;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.08);border:1px solid var(--border);">
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <div style="width:10px;height:10px;border-radius:50%;background:#ef4444;"></div>
+                        <div style="width:10px;height:10px;border-radius:50%;background:#fbbf24;"></div>
+                        <div style="width:10px;height:10px;border-radius:50%;background:#22c55e;"></div>
+                        <div class="ms-2 text-muted" style="font-size:11px;font-weight:600;">GetCore POS Terminal</div>
+                    </div>
+                    <!-- Mini POS preview -->
+                    <div style="background:#f8fafc;border-radius:10px;padding:12px;margin-bottom:12px;">
+                        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:8px;">Today's Revenue</div>
+                        <div style="font-size:1.8rem;font-weight:800;color:#10b981;">KSh 47,850</div>
+                        <div style="font-size:11px;color:#22c55e;font-weight:600;"><i class="bi bi-arrow-up"></i> +12% from yesterday</div>
+                    </div>
+                    <div class="row g-2 mb-2">
+                        {% for item in "abc" %}
+                        <div class="col-4">
+                            <div style="background:#f1f5f9;border-radius:8px;padding:10px;text-align:center;">
+                                <div style="font-size:1.3rem;font-weight:800;color:var(--text);">{{ forloop.counter }}4</div>
+                                <div style="font-size:10px;color:var(--muted);">{% if forloop.first %}Sales{% elif forloop.counter == 2 %}Products{% else %}Staff{% endif %}</div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div style="background:linear-gradient(135deg,#10b981,#059669);border-radius:8px;padding:10px;text-align:center;color:white;font-size:13px;font-weight:700;">
+                        <i class="bi bi-cart3 me-2"></i>Open POS Terminal
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+<!-- ─── Stats bar ──────────────────────────────────────── -->
+<div class="stats-bar">
+    <div class="container">
+        <div class="row g-3 text-center">
+            <div class="col-6 col-md-3 stat-item">
+                <div class="stat-value">{{ tenant_count }}+</div>
+                <div class="stat-label">Active Businesses</div>
+            </div>
+            <div class="col-6 col-md-3 stat-item">
+                <div class="stat-value">M-Pesa</div>
+                <div class="stat-label">Payment Ready</div>
+            </div>
+            <div class="col-6 col-md-3 stat-item">
+                <div class="stat-value">eTIMS</div>
+                <div class="stat-label">KRA Compliant</div>
+            </div>
+            <div class="col-6 col-md-3 stat-item">
+                <div class="stat-value">24/7</div>
+                <div class="stat-label">Always Online</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- ─── Features ──────────────────────────────────────── -->
+<section class="features-section" id="features">
+    <div class="container">
+        <div class="text-center mb-5">
+            <div class="section-label">What You Get</div>
+            <h2 class="section-title">Everything your business needs</h2>
+            <p class="section-sub mx-auto">One platform to run your entire operation — no technical skills required.</p>
+        </div>
+
+        <div class="row g-4">
+            {% for feat in features %}
+            <div class="col-md-6 col-lg-4">
+                <div class="feature-card">
+                    <div class="feature-icon" style="background:{{ feat.bg }};">
+                        <i class="bi {{ feat.icon }}" style="color:{{ feat.color }};"></i>
+                    </div>
+                    <h5>{{ feat.title }}</h5>
+                    <p>{{ feat.desc }}</p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+
+<!-- ─── How it works ──────────────────────────────────── -->
+<section class="how-section" id="how-it-works">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-5 mb-5 mb-lg-0">
+                <div class="section-label">Simple Setup</div>
+                <h2 class="section-title">Up and running in minutes</h2>
+                <p class="section-sub">No installation, no technical knowledge, no IT team needed.</p>
+            </div>
+            <div class="col-lg-6 offset-lg-1">
+                {% for step in steps %}
+                <div class="d-flex align-items-start gap-4 mb-4">
+                    <div>
+                        <div class="step-number">{{ forloop.counter }}</div>
+                        {% if not forloop.last %}<div class="step-connector"></div>{% endif %}
+                    </div>
+                    <div class="pt-1">
+                        <h6 class="fw-bold mb-1">{{ step.title }}</h6>
+                        <p class="text-muted small mb-0">{{ step.desc }}</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</section>
+
+
+<!-- ─── Get Access / CTA ───────────────────────────────── -->
+<section class="cta-section" id="get-access">
+    <div class="container position-relative">
+        <h2 class="cta-title">Ready to get started?</h2>
+        <p class="cta-sub">
+            Contact our team to have your business set up on GetCore.
+            You'll receive a unique access key for your workspace.
+        </p>
+
+        <!-- Key entry -->
+        <div class="mb-5">
+            <p class="mb-3" style="opacity:.85;font-size:14px;">Already have an access key? Enter it below:</p>
+            <form class="key-form" id="keyForm" onsubmit="goToKey(event)">
+                <input type="text" id="keyInput" placeholder="e.g. kamau-agrovet" autocomplete="off"
+                       pattern="[a-z0-9\-]+" title="Lowercase letters, numbers, and hyphens only">
+                <button type="submit">
+                    <i class="bi bi-arrow-right-circle-fill me-1"></i>Go to my workspace
+                </button>
+            </form>
+            <div id="keyError" class="mt-2" style="font-size:12px;color:var(--accent);display:none;">
+                <i class="bi bi-exclamation-circle me-1"></i>Please enter your access key.
+            </div>
+        </div>
+
+        <div id="contact" class="row g-4 justify-content-center">
+            <div class="col-md-4">
+                <div class="contact-card">
+                    <div style="font-size:1.4rem;margin-bottom:10px;"><i class="bi bi-whatsapp"></i></div>
+                    <div class="fw-bold mb-1">WhatsApp</div>
+                    <a href="https://wa.me/254700000000">+254 700 000 000</a>
+                    <p class="mt-1 mb-0" style="font-size:12px;opacity:.75;">Available Mon–Sat, 8am–6pm EAT</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="contact-card">
+                    <div style="font-size:1.4rem;margin-bottom:10px;"><i class="bi bi-envelope-fill"></i></div>
+                    <div class="fw-bold mb-1">Email Us</div>
+                    <a href="mailto:hello@getcore.co.ke">hello@getcore.co.ke</a>
+                    <p class="mt-1 mb-0" style="font-size:12px;opacity:.75;">We respond within 24 hours</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="contact-card">
+                    <div style="font-size:1.4rem;margin-bottom:10px;"><i class="bi bi-person-lines-fill"></i></div>
+                    <div class="fw-bold mb-1">Platform Admin</div>
+                    <a href="/platform/">Platform Portal</a>
+                    <p class="mt-1 mb-0" style="font-size:12px;opacity:.75;">For system administrators only</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+<!-- ─── Footer ─────────────────────────────────────────── -->
+<footer class="landing-footer">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div>
+                <span class="text-white fw-bold me-2">GetCore</span>
+                &copy; {% now "Y" %} · Built for Kenya
+            </div>
+            <div class="d-flex gap-4">
+                <a href="#features">Features</a>
+                <a href="#how-it-works">How it works</a>
+                <a href="#contact">Contact</a>
+                <a href="/platform/">Platform Admin</a>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+function goToKey(e) {
+    e.preventDefault();
+    const key = document.getElementById('keyInput').value.trim().toLowerCase();
+    const err = document.getElementById('keyError');
+    if (!key) { err.style.display = 'block'; return; }
+    err.style.display = 'none';
+    window.location.href = '/' + key + '/pos/';
+}
+// Smooth scroll for anchor links
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+        const target = document.querySelector(a.getAttribute('href'));
+        if (target) { e.preventDefault(); target.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+    });
+});
+</script>
+</body>
+</html>

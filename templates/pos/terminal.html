@@ -1,0 +1,764 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block title %}POS Terminal — {{ sys.business_name }}{% endblock %}
+{% block breadcrumb %}<i class="bi bi-cart3 me-1"></i> POS Terminal{% endblock %}
+
+{% block extra_head %}
+<style>
+/* ── Remove page padding so terminal bleeds edge-to-edge ── */
+.nexus-content { padding: 0 !important; overflow: hidden; }
+
+/* ══════════════════════════════════════════════
+   TERMINAL WRAPPER
+   Desktop (≥992): side-by-side products | cart
+   Tablet  (<992): products full-width; cart is
+                   a slide-in drawer from right
+   Mobile  (<576): cart is a slide-up sheet;
+                   FAB button opens it
+══════════════════════════════════════════════ */
+.pos-wrap {
+    display: flex;
+    height: calc(100vh - var(--nexus-topbar-h));
+    overflow: hidden;
+    position: relative;
+    background: var(--nexus-bg);
+}
+
+/* ─────── LEFT: Product panel ─────── */
+.pos-products {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.pos-search-bar {
+    display: flex;
+    gap: 8px;
+    padding: 12px 12px 8px;
+    background: var(--nexus-bg);
+    flex-shrink: 0;
+    position: sticky;
+    top: 0;
+    z-index: 5;
+}
+
+.pos-grid-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 4px 12px 80px; /* bottom pad leaves room for FAB on mobile */
+    scrollbar-width: thin;
+    scrollbar-color: var(--nexus-border) transparent;
+}
+.pos-grid-scroll::-webkit-scrollbar { width: 4px; }
+.pos-grid-scroll::-webkit-scrollbar-thumb { background: var(--nexus-border); border-radius: 4px; }
+
+/* ─────── RIGHT: Cart panel ────────── */
+.pos-cart {
+    width: 340px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: var(--nexus-surface);
+    border-left: 1px solid var(--nexus-border);
+    overflow: hidden;
+    transition: transform .28s cubic-bezier(.4,0,.2,1);
+}
+
+.cart-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--nexus-border);
+    flex-shrink: 0;
+    flex-wrap: wrap;
+}
+
+.cart-head-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 700;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.cart-head-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+    justify-content: flex-end;
+    min-width: 0;
+}
+
+.cart-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 6px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--nexus-border) transparent;
+}
+.cart-body::-webkit-scrollbar { width: 3px; }
+.cart-body::-webkit-scrollbar-thumb { background: var(--nexus-border); border-radius: 3px; }
+
+.cart-foot {
+    flex-shrink: 0;
+    border-top: 1px solid var(--nexus-border);
+    background: var(--nexus-surface);
+}
+
+/* ─── Cart item row ─── */
+.cart-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 6px;
+    border-radius: var(--nexus-radius-sm);
+    transition: background .12s;
+    animation: slideInRight .15s ease both;
+}
+.cart-row:hover { background: rgba(var(--nexus-primary-rgb), .04); }
+.cart-row-info  { flex: 1; min-width: 0; }
+.cart-row-name  { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cart-row-sub   { font-size: 11px; color: var(--nexus-muted); }
+
+.cart-qty {
+    display: flex; align-items: center; gap: 3px;
+    background: #f1f5f9; border-radius: 20px; padding: 2px 4px; flex-shrink: 0;
+}
+.cqbtn {
+    width: 22px; height: 22px; border-radius: 50%; border: none;
+    background: white; font-size: 14px; line-height: 1; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,.12); transition: var(--nexus-transition); flex-shrink: 0;
+}
+.cqbtn:hover { background: var(--nexus-primary); color: white; }
+.cqval { min-width: 22px; text-align: center; font-weight: 700; font-size: 13px; }
+
+.cart-row-right { text-align: right; min-width: 68px; flex-shrink: 0; }
+.crow-total     { font-size: 13px; font-weight: 700; display: block; }
+.crow-del {
+    background: none; border: none; color: #ef4444; cursor: pointer;
+    padding: 0; font-size: 14px; line-height: 1; transition: var(--nexus-transition);
+}
+.crow-del:hover { transform: scale(1.2); }
+
+/* ─── Empty state ─── */
+.cart-empty {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    height: 100%; color: var(--nexus-muted);
+    padding: 24px; text-align: center; gap: 8px;
+}
+.cart-empty i { font-size: 2.5rem; opacity: .35; }
+
+/* ─── Discount row ─── */
+.discount-strip {
+    display: flex; gap: 8px; padding: 8px 14px 4px;
+}
+.discount-strip label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 3px; }
+
+/* ─── Totals ─── */
+.totals-block { padding: 8px 14px 4px; }
+.tot-row {
+    display: flex; justify-content: space-between;
+    align-items: center; font-size: 13px; padding: 2px 0;
+}
+.tot-grand {
+    display: flex; justify-content: space-between; align-items: center;
+    border-top: 2px solid var(--nexus-border);
+    padding-top: 8px; margin-top: 4px;
+    font-size: 1.1rem; font-weight: 700; color: var(--nexus-primary);
+}
+
+/* ─── Payment buttons ─── */
+.pay-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 6px; padding: 6px 14px;
+}
+.pay-btn {
+    border: 2px solid var(--nexus-border); border-radius: var(--nexus-radius-sm);
+    background: var(--nexus-surface); padding: 7px 4px;
+    cursor: pointer; text-align: center; font-size: 12px; font-weight: 600;
+    transition: var(--nexus-transition); user-select: none;
+}
+.pay-btn i      { display: block; font-size: 1.2rem; margin-bottom: 2px; }
+.pay-btn:hover  { border-color: var(--nexus-primary); color: var(--nexus-primary); }
+.pay-btn.active { border-color: var(--nexus-primary); background: rgba(var(--nexus-primary-rgb),.08); color: var(--nexus-primary); }
+
+/* ─── Tendered ─── */
+.tendered-strip { padding: 0 14px 6px; }
+
+/* ─── Charge button ─── */
+.charge-btn {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    margin: 8px 14px 14px;
+    background: var(--nexus-primary); border: none;
+    border-radius: var(--nexus-radius); color: white;
+    width: calc(100% - 28px);
+    padding: 13px 20px; font-size: 1rem; font-weight: 700;
+    cursor: pointer; transition: var(--nexus-transition);
+    box-shadow: 0 4px 14px rgba(var(--nexus-primary-rgb),.35);
+}
+.charge-btn:hover:not(:disabled) { filter: brightness(1.08); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(var(--nexus-primary-rgb),.45); }
+.charge-btn:active:not(:disabled){ transform: scale(.98); }
+.charge-btn:disabled { background: #cbd5e1; box-shadow: none; cursor: not-allowed; transform: none; }
+
+/* ─── Product cards ─── */
+.prod-card {
+    border: 2px solid transparent; border-radius: var(--nexus-radius);
+    background: var(--nexus-surface); box-shadow: var(--nexus-shadow-sm);
+    cursor: pointer; transition: var(--nexus-transition); overflow: hidden; height: 100%;
+}
+.prod-card:hover  { border-color: var(--nexus-primary); box-shadow: var(--nexus-shadow); transform: translateY(-2px); }
+.prod-card:active { transform: scale(.97); }
+.prod-thumb {
+    height: 54px; display: flex; align-items: center; justify-content: center;
+    background: #f1f5f9; overflow: hidden;
+}
+.prod-thumb img  { width: 100%; height: 100%; object-fit: cover; }
+.prod-body       { padding: 6px 8px 8px; text-align: center; }
+.prod-name       { font-size: 12px; font-weight: 600; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.prod-price      { font-size: 13px; font-weight: 700; color: var(--nexus-primary); margin: 2px 0; }
+.prod-stock      { font-size: 11px; }
+
+/* ─── Mobile FAB ─── */
+.cart-fab {
+    display: none;
+    position: fixed; bottom: 20px; right: 20px;
+    width: 60px; height: 60px; border-radius: 50%;
+    background: var(--nexus-primary); color: white; border: none;
+    font-size: 1.4rem; cursor: pointer;
+    box-shadow: 0 4px 18px rgba(var(--nexus-primary-rgb),.45);
+    z-index: 200; align-items: center; justify-content: center;
+    transition: var(--nexus-transition);
+}
+.cart-fab:hover { filter: brightness(1.1); transform: scale(1.05); }
+.fab-badge {
+    position: absolute; top: 2px; right: 2px;
+    background: #ef4444; color: white; border-radius: 50%;
+    width: 20px; height: 20px; font-size: 11px; font-weight: 700;
+    display: none; align-items: center; justify-content: center;
+}
+
+/* ─── Backdrop ─── */
+.cart-backdrop {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,.45); z-index: 190;
+    backdrop-filter: blur(2px);
+}
+.cart-backdrop.show { display: block; }
+
+/* ─── Drag handle (phone only) ─── */
+.drag-handle {
+    display: none; width: 40px; height: 4px;
+    background: var(--nexus-border); border-radius: 2px;
+    margin: 10px auto 4px; flex-shrink: 0;
+}
+
+/* ═══════════ RESPONSIVE BREAKPOINTS ═══════════ */
+
+/* Tablet & below: cart becomes a right-side drawer */
+@media (max-width: 991.98px) {
+    .pos-cart {
+        position: fixed;
+        top: var(--nexus-topbar-h); right: 0; bottom: 0;
+        width: min(380px, 88vw);
+        transform: translateX(110%);
+        z-index: 195;
+        box-shadow: -4px 0 24px rgba(0,0,0,.12);
+        border-left: none;
+    }
+    .pos-cart.open { transform: translateX(0); }
+    .cart-fab      { display: flex; }
+    .pos-grid-scroll { padding-bottom: 90px; }
+}
+
+/* Phone: cart is a bottom sheet */
+@media (max-width: 575.98px) {
+    .pos-cart {
+        top: auto; right: 0; left: 0;
+        width: 100%; height: 88vh;
+        border-radius: 20px 20px 0 0;
+        transform: translateY(110%);
+        box-shadow: 0 -4px 24px rgba(0,0,0,.15);
+    }
+    .pos-cart.open { transform: translateY(0); }
+    .drag-handle   { display: block; }
+    .cart-head     { padding-top: 4px; }
+    .cart-fab      { bottom: 16px; right: 16px; }
+    /* Tighter product grid on small screens */
+    .prod-thumb    { height: 44px; }
+}
+
+/* Desktop: static side panel, no FAB */
+@media (min-width: 992px) {
+    .cart-fab, .cart-backdrop, .drag-handle { display: none !important; }
+    .pos-cart { transform: none !important; }
+}
+
+/* Very wide screens: wider cart */
+@media (min-width: 1400px) {
+    .pos-cart { width: 380px; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Backdrop (tablet/mobile) -->
+<div class="cart-backdrop" id="cartBackdrop" onclick="closeCart()"></div>
+
+<div class="pos-wrap">
+
+    <!-- ════════ LEFT: PRODUCTS ════════ -->
+    <div class="pos-products">
+
+        <!-- Search bar -->
+        <div class="pos-search-bar">
+            <div class="input-group flex-grow-1">
+                <span class="input-group-text bg-white border-end-0">
+                    <i class="bi bi-search text-muted small"></i>
+                </span>
+                <input type="text" id="productSearch"
+                       class="form-control border-start-0 ps-1"
+                       placeholder="Search name or SKU…">
+            </div>
+            <select id="categoryFilter" class="form-select flex-shrink-0" style="max-width:150px;">
+                <option value="">All</option>
+                {% for cat_id, cat_name in categories %}
+                <option value="{{ cat_id }}">{{ cat_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Grid -->
+        <div class="pos-grid-scroll">
+            <div class="row g-2" id="productGrid">
+                {% for product in products %}
+                <div class="col-6 col-sm-4 col-md-3 col-xl-2 product-item"
+                     data-name="{{ product.name|lower }}"
+                     data-sku="{{ product.sku|lower|default:'' }}"
+                     data-category="{{ product.category_id|default:'' }}">
+                    <div class="prod-card"
+                         onclick="addToCart(
+                             {{ product.pk }},
+                             '{{ product.name|escapejs }}',
+                             {{ product.selling_price }},
+                             {{ product.quantity_in_stock }},
+                             '{{ product.unit }}',
+                             {{ product.is_service|yesno:'true,false' }})">
+                        <div class="prod-thumb">
+                            {% if product.image %}
+                                <img src="{{ product.image.url }}" alt="{{ product.name }}">
+                            {% else %}
+                                <i class="bi bi-box fs-4 text-muted"></i>
+                            {% endif %}
+                        </div>
+                        <div class="prod-body">
+                            <div class="prod-name" title="{{ product.name }}">{{ product.name }}</div>
+                            <div class="prod-price">{{ currency }} {{ product.selling_price|floatformat:2|intcomma }}</div>
+                            {% if not product.is_service %}
+                            <div class="prod-stock {% if product.is_low_stock %}text-danger{% else %}text-muted{% endif %}">
+                                {{ product.quantity_in_stock }} {{ product.unit }}
+                            </div>
+                            {% else %}
+                            <div class="prod-stock text-info">Service</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-12 text-center py-5 text-muted">
+                    <i class="bi bi-box-seam fs-1 d-block mb-2"></i>
+                    No products found.
+                    {% if user.is_admin_role %}
+                    <a href="/{{ tenant.slug }}/inventory/add/">Add your first product →</a>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+    </div><!-- /pos-products -->
+
+
+    <!-- ════════ RIGHT: CART ════════ -->
+    <div class="pos-cart" id="posCart">
+
+        <!-- Drag handle (phone bottom sheet) -->
+        <div class="drag-handle"></div>
+
+        <!-- Header -->
+        <div class="cart-head">
+            <div class="cart-head-title">
+                <i class="bi bi-cart3" style="color:var(--nexus-primary);"></i>
+                Current Order
+                <span class="badge rounded-pill px-2"
+                      style="background:rgba(var(--nexus-primary-rgb),.12);color:var(--nexus-primary);"
+                      id="cartCount">0</span>
+            </div>
+            <div class="cart-head-actions">
+                <select id="customerSelect"
+                        class="form-select form-select-sm select2"
+                        style="flex:1; min-width:0; max-width:160px;"
+                        data-placeholder="Walk-in">
+                    <option value="">Walk-in</option>
+                    {% for cust in customers %}
+                    <option value="{{ cust.id }}">{{ cust.name }}</option>
+                    {% endfor %}
+                </select>
+                <button onclick="clearCart()"
+                        class="btn btn-sm btn-outline-danger flex-shrink-0"
+                        title="Clear cart">
+                    <i class="bi bi-trash3"></i>
+                </button>
+                <!-- Close button — mobile only -->
+                <button class="btn btn-sm btn-outline-secondary d-lg-none flex-shrink-0"
+                        onclick="closeCart()" title="Close">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Items -->
+        <div class="cart-body" id="cartItems">
+            <!-- Empty state: always in DOM, toggled by JS -->
+            <div class="cart-empty" id="emptyCartMsg">
+                <i class="bi bi-cart-x"></i>
+                <div class="fw-medium small">Cart is empty</div>
+                <div class="text-muted" style="font-size:12px;">Tap a product to add it here</div>
+            </div>
+            <!-- Cart rows written here by renderCart() -->
+            <div id="cartRows"></div>
+        </div>
+
+        <!-- Footer -->
+        <div class="cart-foot">
+
+            <!-- Discount -->
+            <div class="discount-strip">
+                <div class="flex-grow-1">
+                    <label class="form-label">Discount %</label>
+                    <input type="number" id="discountPercent"
+                           class="form-control form-control-sm"
+                           value="0" min="0" max="100" step="0.5" oninput="recalculate()">
+                </div>
+                <div class="flex-grow-1">
+                    <label class="form-label">Fixed ({{ currency }})</label>
+                    <input type="number" id="discountFixed"
+                           class="form-control form-control-sm"
+                           value="0" min="0" step="0.01" oninput="recalculate()">
+                </div>
+            </div>
+
+            <!-- Totals -->
+            <div class="totals-block">
+                <div class="tot-row">
+                    <span class="text-muted">Subtotal</span>
+                    <span id="subtotalDisplay">{{ currency }} 0.00</span>
+                </div>
+                <div class="tot-row">
+                    <span class="text-muted">Discount</span>
+                    <span id="discountDisplay" class="text-danger">− {{ currency }} 0.00</span>
+                </div>
+                <div class="tot-row">
+                    <span class="text-muted">VAT ({{ vat_rate }}%)</span>
+                    <span id="vatDisplay">{{ currency }} 0.00</span>
+                </div>
+                <div class="tot-grand">
+                    <span>TOTAL</span>
+                    <span id="totalDisplay">{{ currency }} 0.00</span>
+                </div>
+            </div>
+
+            <!-- Payment methods -->
+            <div class="pay-grid">
+                <div class="pay-btn active" data-method="cash" onclick="selectPayment(this)">
+                    <i class="bi bi-cash"></i>Cash
+                </div>
+                <div class="pay-btn" data-method="mpesa" onclick="selectPayment(this)">
+                    <i class="bi bi-phone"></i>M-Pesa
+                </div>
+                <div class="pay-btn" data-method="card" onclick="selectPayment(this)">
+                    <i class="bi bi-credit-card"></i>Card
+                </div>
+            </div>
+
+            <!-- M-Pesa code -->
+            <div id="mpesaCodeRow" class="px-3 pb-2 d-none">
+                <input type="text" id="mpesaCode" class="form-control form-control-sm"
+                       placeholder="M-Pesa code e.g. QHX1234ABC">
+            </div>
+
+            <!-- Cash tendered -->
+            <div id="cashTenderedRow" class="tendered-strip">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text">{{ currency }} Paid</span>
+                    <input type="number" id="amountTendered" class="form-control"
+                           placeholder="0.00" step="0.01" min="0" oninput="calcChange()">
+                </div>
+                <div class="d-flex justify-content-between mt-1 small px-1">
+                    <span class="text-muted">Change</span>
+                    <span id="changeDisplay" class="fw-bold text-success">{{ currency }} 0.00</span>
+                </div>
+            </div>
+
+            <!-- Charge -->
+            <button id="chargeBtn" class="charge-btn" onclick="processSale()" disabled>
+                <i class="bi bi-check-circle"></i>
+                <span>Charge&nbsp;<span id="chargeBtnTotal">{{ currency }} 0.00</span></span>
+            </button>
+
+        </div><!-- /cart-foot -->
+    </div><!-- /pos-cart -->
+
+</div><!-- /pos-wrap -->
+
+<!-- Mobile FAB: opens cart drawer -->
+<button class="cart-fab" id="cartFab" onclick="openCart()" title="View cart">
+    <i class="bi bi-cart3"></i>
+    <span class="fab-badge" id="fabBadge">0</span>
+</button>
+
+<!-- Processing modal -->
+<div class="modal fade" id="processingModal" tabindex="-1"
+     data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content text-center p-4">
+            <div class="spinner-border mx-auto mb-3"
+                 style="color:var(--nexus-primary);width:2.5rem;height:2.5rem;"></div>
+            <p class="mb-0 fw-semibold">Processing sale…</p>
+            <small class="text-muted">Please wait</small>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const CURRENCY    = '{{ currency }}';
+const VAT_RATE    = {{ vat_rate }} / 100;
+const CSRF_TOKEN  = '{{ csrf_token }}';
+const PROCESS_URL = '/{{ tenant.slug }}/pos/process/';
+
+let cart            = [];
+let selectedPayment = 'cash';
+
+/* ─── Mobile drawer ─── */
+function openCart() {
+    document.getElementById('posCart').classList.add('open');
+    document.getElementById('cartBackdrop').classList.add('show');
+    document.body.style.overflow = 'hidden';
+}
+function closeCart() {
+    document.getElementById('posCart').classList.remove('open');
+    document.getElementById('cartBackdrop').classList.remove('show');
+    document.body.style.overflow = '';
+}
+
+/* ─── Add to cart ─── */
+function addToCart(id, name, price, stock, unit, isService) {
+    const existing = cart.find(i => i.product_id === id);
+    if (existing) {
+        if (!isService && existing.quantity >= stock) {
+            showToast(`Only ${stock} ${unit} of "${name}" in stock.`, 'warning');
+            return;
+        }
+        existing.quantity += 1;
+    } else {
+        cart.push({
+            product_id: id, name,
+            unit_price: parseFloat(price),
+            quantity: 1, stock, unit, isService, discount: 0
+        });
+    }
+    renderCart();
+    recalculate();
+    // Pulse FAB on mobile
+    const fab = document.getElementById('cartFab');
+    fab.style.transform = 'scale(1.2)';
+    setTimeout(() => fab.style.transform = '', 200);
+}
+
+function removeFromCart(idx) {
+    cart.splice(idx, 1);
+    renderCart();
+    recalculate();
+}
+
+function updateQty(idx, delta) {
+    const item = cart[idx];
+    const newQty = item.quantity + delta;
+    if (newQty <= 0) { removeFromCart(idx); return; }
+    if (!item.isService && newQty > item.stock) {
+        showToast(`Max available: ${item.stock} ${item.unit}`, 'warning');
+        return;
+    }
+    item.quantity = newQty;
+    renderCart();
+    recalculate();
+}
+
+function clearCart() {
+    if (cart.length === 0) return;
+    if (!confirm('Clear all items from the cart?')) return;
+    cart = [];
+    renderCart();
+    recalculate();
+}
+
+/* ─── Render ─── */
+function renderCart() {
+    // NOTE: emptyMsg lives inside cartItems permanently — never remove it from the DOM.
+    // We toggle its visibility and write cart rows into a separate sibling div.
+    const emptyMsg  = document.getElementById('emptyCartMsg');
+    const rowsEl    = document.getElementById('cartRows');
+    const countEl   = document.getElementById('cartCount');
+    const fabBadge  = document.getElementById('fabBadge');
+
+    const totalQty = cart.reduce((s, i) => s + i.quantity, 0);
+    countEl.textContent  = totalQty;
+    fabBadge.textContent = totalQty;
+    fabBadge.style.display = totalQty > 0 ? 'flex' : 'none';
+
+    if (cart.length === 0) {
+        rowsEl.innerHTML        = '';
+        emptyMsg.style.display  = 'flex';
+        return;
+    }
+    emptyMsg.style.display = 'none';
+
+    rowsEl.innerHTML = cart.map((item, idx) => {
+        const lineTotal = (item.unit_price * item.quantity - item.discount).toFixed(2);
+        return `
+        <div class="cart-row">
+            <div class="cart-row-info">
+                <div class="cart-row-name" title="${item.name}">${item.name}</div>
+                <div class="cart-row-sub">${CURRENCY} ${item.unit_price.toFixed(2)} / ${item.unit}</div>
+            </div>
+            <div class="cart-qty">
+                <button class="cqbtn" onclick="updateQty(${idx}, -1)">−</button>
+                <span class="cqval">${item.quantity}</span>
+                <button class="cqbtn" onclick="updateQty(${idx}, +1)">+</button>
+            </div>
+            <div class="cart-row-right">
+                <span class="crow-total">${CURRENCY} ${lineTotal}</span>
+                <button class="crow-del" onclick="removeFromCart(${idx})" title="Remove">
+                    <i class="bi bi-x-circle-fill"></i>
+                </button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+/* ─── Totals ─── */
+function recalculate() {
+    const subtotal  = cart.reduce((s, i) => s + (i.unit_price * i.quantity - i.discount), 0);
+    const discPct   = parseFloat(document.getElementById('discountPercent').value) || 0;
+    const discFixed = parseFloat(document.getElementById('discountFixed').value)   || 0;
+    const discount  = Math.min(discPct > 0 ? subtotal * discPct / 100 : discFixed, subtotal);
+    const taxable   = subtotal - discount;
+    const vat       = taxable * VAT_RATE;
+    const total     = taxable + vat;
+
+    document.getElementById('subtotalDisplay').textContent  = `${CURRENCY} ${subtotal.toFixed(2)}`;
+    document.getElementById('discountDisplay').textContent  = `− ${CURRENCY} ${discount.toFixed(2)}`;
+    document.getElementById('vatDisplay').textContent       = `${CURRENCY} ${vat.toFixed(2)}`;
+    document.getElementById('totalDisplay').textContent     = `${CURRENCY} ${total.toFixed(2)}`;
+    document.getElementById('chargeBtnTotal').textContent   = `${CURRENCY} ${total.toFixed(2)}`;
+    document.getElementById('chargeBtn').disabled           = cart.length === 0;
+
+    calcChange();
+}
+
+function calcChange() {
+    const total    = parseFloat(document.getElementById('totalDisplay').textContent.replace(CURRENCY, '').trim()) || 0;
+    const tendered = parseFloat(document.getElementById('amountTendered').value) || 0;
+    document.getElementById('changeDisplay').textContent = `${CURRENCY} ${Math.max(tendered - total, 0).toFixed(2)}`;
+}
+
+/* ─── Payment ─── */
+function selectPayment(btn) {
+    document.querySelectorAll('.pay-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedPayment = btn.dataset.method;
+    document.getElementById('mpesaCodeRow').classList.toggle('d-none', selectedPayment !== 'mpesa');
+    document.getElementById('cashTenderedRow').classList.toggle('d-none', selectedPayment !== 'cash');
+}
+
+/* ─── Process ─── */
+function processSale() {
+    if (cart.length === 0) { showToast('Cart is empty!', 'warning'); return; }
+
+    const total    = parseFloat(document.getElementById('totalDisplay').textContent.replace(CURRENCY, '').trim()) || 0;
+    const tendered = parseFloat(document.getElementById('amountTendered').value) || total;
+
+    if (selectedPayment === 'cash' && tendered < total) {
+        showToast(`Tendered ${CURRENCY} ${tendered.toFixed(2)} is less than total ${CURRENCY} ${total.toFixed(2)}`, 'danger');
+        return;
+    }
+
+    const modal = new bootstrap.Modal(document.getElementById('processingModal'));
+    modal.show();
+
+    fetch(PROCESS_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN },
+        body: JSON.stringify({
+            items: cart.map(i => ({
+                product_id: i.product_id,
+                quantity:   i.quantity,
+                unit_price: i.unit_price,
+                discount:   i.discount,
+            })),
+            payment_method:   selectedPayment,
+            amount_tendered:  tendered,
+            discount_percent: parseFloat(document.getElementById('discountPercent').value) || 0,
+            discount_amount:  parseFloat(document.getElementById('discountFixed').value)   || 0,
+            customer_id:      document.getElementById('customerSelect').value || null,
+            mpesa_code:       document.getElementById('mpesaCode')?.value     || '',
+            notes: '',
+        }),
+    })
+    .then(r => r.json())
+    .then(data => {
+        modal.hide();
+        if (data.success) {
+            closeCart();
+            cart = [];
+            renderCart();
+            recalculate();
+            window.location.href = data.receipt_url;
+        } else {
+            showToast('Error: ' + data.error, 'danger');
+        }
+    })
+    .catch(err => {
+        modal.hide();
+        showToast('Network error — please try again.', 'danger');
+        console.error(err);
+    });
+}
+
+/* ─── Init ─── */
+recalculate();
+
+$(document).ready(function () {
+    $('#customerSelect').select2({
+        theme: 'bootstrap-5',
+        width: '100%',
+        dropdownParent: $('#posCart'),
+    });
+});
+
+/* Escape closes mobile cart */
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeCart();
+});
+</script>
+{% endblock %}

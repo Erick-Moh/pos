@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block title %}{{ product.name }} — {{ sys.business_name }}{% endblock %}
+{% block breadcrumb %}<a href="/{{ tenant.slug }}/inventory/" class="text-muted text-decoration-none">Inventory</a> / {{ product.name }}{% endblock %}
+
+{% block extra_head %}
+<style>
+.detail-stat { padding:14px 16px; border-radius:10px; background:var(--nexus-bg); border:1px solid var(--nexus-border); }
+.detail-stat-val { font-size:1.2rem; font-weight:800; line-height:1.1; }
+.detail-stat-lbl { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--nexus-muted); margin-top:2px; }
+.info-row { display:flex; flex-direction:column; gap:2px; padding:10px 0; border-bottom:1px solid var(--nexus-border); }
+.info-row:last-child { border-bottom:none; padding-bottom:0; }
+.info-row .lbl { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--nexus-muted); }
+.info-row .val { font-size:14px; font-weight:500; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Page header -->
+<div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-2">
+    <div class="d-flex align-items-center gap-3">
+        {% if product.image %}
+        <img src="{{ product.image.url }}" style="width:56px;height:56px;border-radius:12px;object-fit:cover;" alt="{{ product.name }}">
+        {% else %}
+        <div style="width:56px;height:56px;border-radius:12px;background:var(--nexus-bg);border:1.5px solid var(--nexus-border);display:flex;align-items:center;justify-content:center;">
+            <i class="bi bi-box fs-4 text-muted"></i>
+        </div>
+        {% endif %}
+        <div>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <h4 class="fw-bold mb-0">{{ product.name }}</h4>
+                {% if product.is_service %}<span class="badge bg-info">Service</span>{% endif %}
+                {% if not product.is_active %}<span class="badge bg-secondary">Inactive</span>{% endif %}
+                {% if product.is_low_stock %}<span class="badge bg-danger">Low Stock</span>{% endif %}
+            </div>
+            <div class="text-muted small mt-1">{{ product.category|default:"Uncategorised" }} · SKU: <code>{{ product.sku|default:"—" }}</code></div>
+        </div>
+    </div>
+    {% if user.is_admin_role %}
+    <div class="d-flex gap-2">
+        <a href="/{{ tenant.slug }}/inventory/adjust/?product={{ product.pk }}" class="btn btn-outline-secondary btn-sm px-3">
+            <i class="bi bi-arrow-left-right me-1"></i>Adjust Stock
+        </a>
+        <a href="/{{ tenant.slug }}/inventory/{{ product.pk }}/edit/" class="btn btn-nexus btn-sm px-3">
+            <i class="bi bi-pencil me-1"></i>Edit
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- KPI strip -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="detail-stat">
+            <div class="detail-stat-val {% if product.is_low_stock %}text-danger{% else %}text-success{% endif %}">
+                {{ product.quantity_in_stock|intcomma }}
+            </div>
+            <div class="detail-stat-lbl">In Stock ({{ product.unit }})</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="detail-stat">
+            <div class="detail-stat-val" style="color:var(--nexus-primary);">{{ sys.currency_symbol }} {{ product.selling_price|floatformat:2|intcomma }}</div>
+            <div class="detail-stat-lbl">Selling Price</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="detail-stat">
+            <div class="detail-stat-val {% if product.profit_margin >= 20 %}text-success{% else %}text-warning{% endif %}">
+                {{ product.profit_margin }}%
+            </div>
+            <div class="detail-stat-lbl">Profit Margin</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="detail-stat">
+            <div class="detail-stat-val">{{ sys.currency_symbol }} {{ product.stock_value|floatformat:0|intcomma }}</div>
+            <div class="detail-stat-lbl">Stock Value</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+
+    <!-- Left: Product info -->
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent border-0 pt-3 pb-2 px-3">
+                <h6 class="fw-bold mb-0">Product Info</h6>
+            </div>
+            <div class="card-body px-3 pt-0">
+                {% if product.description %}
+                <p class="text-muted small mb-3">{{ product.description }}</p>
+                {% endif %}
+                <div class="info-row">
+                    <span class="lbl">Buying Price</span>
+                    <span class="val">{{ sys.currency_symbol }} {{ product.buying_price|floatformat:2|intcomma }}</span>
+                </div>
+                {% if product.wholesale_price %}
+                <div class="info-row">
+                    <span class="lbl">Wholesale Price</span>
+                    <span class="val">{{ sys.currency_symbol }} {{ product.wholesale_price|floatformat:2|intcomma }}</span>
+                </div>
+                {% endif %}
+                <div class="info-row">
+                    <span class="lbl">Supplier</span>
+                    <span class="val">{{ product.supplier|default:"—" }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="lbl">Reorder Level</span>
+                    <span class="val">{{ product.reorder_level|intcomma }} {{ product.unit }}</span>
+                </div>
+                {% if product.barcode %}
+                <div class="info-row">
+                    <span class="lbl">Barcode</span>
+                    <span class="val"><code>{{ product.barcode }}</code></span>
+                </div>
+                {% endif %}
+                <div class="info-row">
+                    <span class="lbl">VAT</span>
+                    <span class="val">{% if product.is_vat_exempt %}Exempt{% else %}Standard{% endif %}</span>
+                </div>
+            </div>
+        </div>
+
+        {% if product.is_low_stock %}
+        <div class="alert d-flex align-items-start gap-2" style="background:#fff7ed;border:1.5px solid #fed7aa;border-radius:10px;color:#9a3412;">
+            <i class="bi bi-exclamation-triangle-fill mt-1 flex-shrink-0"></i>
+            <div>
+                <strong>Low Stock Warning</strong><br>
+                <span class="small">Only <strong>{{ product.quantity_in_stock|intcomma }} {{ product.unit }}</strong> remaining. Reorder level is {{ product.reorder_level|intcomma }}.</span>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Right: Movement history -->
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent border-0 pt-3 pb-2 px-3 d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold mb-0">Recent Stock Movements</h6>
+                {% if user.is_admin_role %}
+                <a href="/{{ tenant.slug }}/inventory/adjust/" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-plus me-1"></i>Record Movement
+                </a>
+                {% endif %}
+            </div>
+            <div class="table-responsive">
+                <table class="table align-middle mb-0" style="font-size:13px;">
+                    <thead style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--nexus-muted);background:var(--nexus-bg);">
+                        <tr>
+                            <th class="ps-3 py-2">Date</th>
+                            <th class="py-2">Type</th>
+                            <th class="py-2 text-center">Qty</th>
+                            <th class="py-2 text-center">Before</th>
+                            <th class="py-2 text-center">After</th>
+                            <th class="py-2 pe-3">Ref</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for m in movements %}
+                        <tr>
+                            <td class="ps-3 text-muted small">{{ m.created_at|date:"d M H:i" }}</td>
+                            <td>
+                                <span class="badge rounded-pill
+                                    {% if m.movement_type == 'purchase' %}bg-success
+                                    {% elif m.movement_type == 'sale' %}bg-primary
+                                    {% elif m.movement_type == 'damage' %}bg-danger
+                                    {% elif m.movement_type == 'return' %}bg-warning text-dark
+                                    {% else %}bg-secondary{% endif %}">
+                                    {{ m.get_movement_type_display }}
+                                </span>
+                            </td>
+                            <td class="text-center fw-bold {% if m.quantity > 0 %}text-success{% else %}text-danger{% endif %}">
+                                {% if m.quantity > 0 %}+{% endif %}{{ m.quantity|intcomma }}
+                            </td>
+                            <td class="text-center text-muted">{{ m.quantity_before|intcomma }}</td>
+                            <td class="text-center fw-medium">{{ m.quantity_after|intcomma }}</td>
+                            <td class="pe-3 text-muted small">{{ m.reference|default:"—" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center py-4 text-muted">
+                                <i class="bi bi-clock-history d-block mb-1 fs-4 opacity-25"></i>
+                                No movements recorded yet.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

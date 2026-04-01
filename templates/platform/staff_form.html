@@ -1,0 +1,104 @@
+{% extends "platform/base.html" %}
+{% block title %}{{ action }} Staff Account{% endblock %}
+{% block breadcrumb_extra %}
+<li class="breadcrumb-item">
+    <a href="{% url 'platform:staff_list' %}" class="text-muted text-decoration-none small">Staff</a>
+</li>
+{% endblock %}
+{% block page_title %}{{ action }} Staff Account{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-7 col-xl-6">
+        <div class="p-form-card">
+            <div class="p-form-header">
+                <h5 class="fw-bold mb-1">
+                    <i class="bi bi-shield-person me-2" style="color:#10b981;"></i>
+                    {{ action }} Platform Staff Account
+                </h5>
+                <p class="text-muted small mb-0">
+                    Staff accounts can log in at <strong>/platform/</strong> and manage all clients.
+                </p>
+            </div>
+
+            <form method="post" novalidate>
+                {% csrf_token %}
+                {% if form.non_field_errors %}
+                <div class="alert alert-danger mx-4 mt-3">{{ form.non_field_errors }}</div>
+                {% endif %}
+
+                <div class="p-form-body">
+
+                    <div class="form-section mb-4">
+                        <span class="form-section-title">Account Info</span>
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label">Username <span class="text-danger">*</span></label>
+                                {{ form.username }}
+                                {% for e in form.username.errors %}<div class="field-error"><i class="bi bi-exclamation-circle"></i>{{ e }}</div>{% endfor %}
+                            </div>
+                            <div class="col-sm-6">
+                                <label class="form-label">First Name</label>
+                                {{ form.first_name }}
+                            </div>
+                            <div class="col-sm-6">
+                                <label class="form-label">Last Name</label>
+                                {{ form.last_name }}
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Email</label>
+                                {{ form.email }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section mb-4">
+                        <span class="form-section-title">Password</span>
+                        {% if action == 'Edit' %}
+                        <div class="alert alert-info py-2 mb-3" style="font-size:13px;">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Leave password fields blank to keep the existing password.
+                        </div>
+                        {% endif %}
+                        <div class="row g-3">
+                            <div class="col-sm-6">
+                                <label class="form-label">
+                                    {% if action == 'Edit' %}New {% endif %}Password
+                                    {% if action == 'Create' %}<span class="text-danger">*</span>{% endif %}
+                                </label>
+                                {{ form.password }}
+                                {% for e in form.password.errors %}<div class="field-error"><i class="bi bi-exclamation-circle"></i>{{ e }}</div>{% endfor %}
+                            </div>
+                            <div class="col-sm-6">
+                                <label class="form-label">Confirm Password</label>
+                                {{ form.confirm_password }}
+                                {% for e in form.confirm_password.errors %}<div class="field-error"><i class="bi bi-exclamation-circle"></i>{{ e }}</div>{% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section mb-2">
+                        <span class="form-section-title">Permissions</span>
+                        <div class="form-check mt-2">
+                            {{ form.is_superuser }}
+                            <label class="form-check-label fw-medium" for="{{ form.is_superuser.id_for_label }}">
+                                Superuser
+                            </label>
+                            <div class="form-text">Superusers have unrestricted access including Django admin.</div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="p-form-footer">
+                    <button type="submit" class="btn btn-platform px-5">
+                        <i class="bi bi-check-lg me-1"></i>
+                        {% if action == 'Create' %}Create Account{% else %}Save Changes{% endif %}
+                    </button>
+                    <a href="{% url 'platform:staff_list' %}" class="btn btn-outline-secondary px-4">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

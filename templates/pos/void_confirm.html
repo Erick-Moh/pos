@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block title %}Void Sale — {{ sys.business_name }}{% endblock %}
+{% block breadcrumb %}
+    <a href="/{{ tenant.slug }}/pos/sales/" class="text-muted text-decoration-none">Sales</a>
+    / Void Sale
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+        <div class="form-page-card" style="border-top: 4px solid #ef4444;">
+            <div class="form-page-header" style="background: linear-gradient(135deg, rgba(239,68,68,.05) 0%, transparent 60%);">
+                <h4 class="text-danger mb-1">
+                    <i class="bi bi-x-circle me-2"></i>Void Sale
+                </h4>
+                <p class="text-muted small mb-0">This action cannot be undone. Stock is not automatically restored.</p>
+            </div>
+
+            <div class="form-page-body">
+                <!-- Sale summary -->
+                <div class="p-3 rounded-3 mb-4" style="background:#fff1f2;border:1px solid #fecaca;">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="fw-semibold">{{ sale.invoice_number }}</span>
+                        <span class="fw-bold text-danger fs-5">{{ sys.currency_symbol }} {{ sale.total_amount|floatformat:2|intcomma }}</span>
+                    </div>
+                    <div class="small text-muted">
+                        {{ sale.created_at|date:"d M Y, H:i" }} &bull;
+                        {{ sale.served_by.get_full_name|default:sale.served_by.username }} &bull;
+                        {{ sale.get_payment_method_display }}
+                    </div>
+                </div>
+
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    <div class="mb-4">
+                        <label class="form-label" for="void_reason">Reason for Voiding <span class="required-star">*</span></label>
+                        <textarea name="void_reason" id="void_reason" class="form-control" rows="3"
+                                  required placeholder="e.g. Customer cancelled order, wrong items entered…"></textarea>
+                    </div>
+                    <div class="d-flex gap-3">
+                        <button type="submit" class="btn btn-danger px-5">
+                            <i class="bi bi-x-circle me-1"></i>Confirm Void
+                        </button>
+                        <a href="/{{ tenant.slug }}/pos/sales/" class="btn btn-outline-secondary px-4">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

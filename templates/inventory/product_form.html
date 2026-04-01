@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block title %}{{ action }} — {{ sys.business_name }}{% endblock %}
+{% block breadcrumb %}
+    <a href="/{{ tenant.slug }}/inventory/" class="text-muted text-decoration-none">Inventory</a> / {{ action }}
+{% endblock %}
+
+{% block extra_head %}
+<style>
+.toggle-row { display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--nexus-border); }
+.toggle-row:last-child { border-bottom:none; padding-bottom:0; }
+.toggle-row strong { font-size:13px; font-weight:600; display:block; }
+.toggle-row span { font-size:11.5px; color:var(--nexus-muted); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-9 col-xl-8">
+        <div class="form-page-card">
+            <div class="form-page-header" style="background:linear-gradient(90deg,rgba(var(--nexus-primary-rgb),.05) 0%,transparent 100%);">
+                <div class="d-flex align-items-center gap-3">
+                    <div style="width:42px;height:42px;border-radius:10px;background:rgba(var(--nexus-primary-rgb),.1);display:flex;align-items:center;justify-content:center;">
+                        <i class="bi bi-box-seam" style="color:var(--nexus-primary);font-size:1.2rem;"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold mb-0">{{ action }}</h5>
+                        <p class="text-muted small mb-0">Fields marked <span class="text-danger">*</span> are required.</p>
+                    </div>
+                </div>
+            </div>
+
+            <form method="post" enctype="multipart/form-data" novalidate>
+                {% csrf_token %}
+                {% if form.non_field_errors %}
+                <div class="alert alert-danger mx-4 mt-4"><i class="bi bi-exclamation-circle-fill me-2"></i>{{ form.non_field_errors }}</div>
+                {% endif %}
+
+                <div class="form-page-body">
+
+                    <!-- Identity -->
+                    <div class="form-section mb-4">
+                        <span class="form-section-title">Product Identity</span>
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label" for="{{ form.name.id_for_label }}">Product Name <span class="required-star">*</span></label>
+                                {{ form.name }}
+                                {% for e in form.name.errors %}<div class="field-error"><i class="bi bi-exclamation-circle"></i>{{ e }}</div>{% endfor %}
+                            </div>
+                            <div class="col-sm-6">
+                                <label class="form-label" for="{{ form.sku.id_for_label }}">SKU</label>
+                                {{ form.sku }}
+                                <div class="form-text">Auto-generated if blank.</div>
+                            </div>
+                            <div class="col-sm-6">
+                                <label class="form-label" for="{{ form.barcode.id_for_label }}">Barcode</label>
+                                {{ form.barcode }}
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label" for="{{ form.description.id_for_label }}">Description</label>
+                                {{ form.description }}
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Product Image</label>
+                                {% if obj and obj.image %}
+                                <div class="d-flex align-items-center gap-3 mb-2 p-2 rounded-3" style="background:var(--nexus-bg);border:1.5px dashed var(--nexus-border);">
+                                    <img src="{{ obj.image.url }}" height="52" class="rounded" style="object-fit:cover;max-width:80px;">
+                                    <span class="text-muted small">Current image — upload below to replace</span>
+                                </div>
+                                {% endif %}
+                                {{ form.image }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Classification -->
+                    <div class="form-section mb-4">
+                        <span class="form-section-title">Classification</span>
+                        <div class="row g-3">
+                            <div class="col-sm-6">
+                                <label class="form-label" for="{{ form.category.id_for_label }}">Category</label>
+                                {{ form.category }}
+                                {% for e in form.category.errors %}<div class="field-error"><i class="bi bi-exclamation-circle"></i>{{ e }}</div>{% endfor %}
+                            </div>
+                            <div class="col-sm-6">
+                                <label class="form-label" for="{{ form.supplier.id_for_label }}">Supplier</label>
+                                {{ form.supplier }}
+                            </div>
+                            <div class="col-sm-4">
+                                <label class="form-label" for="{{ form.unit.id_for_label }}">Unit <span class="required-star">*</span></label>
+                                {{ form.unit }}
+                                {% for e in form.unit.errors %}<div class="field-error"><i class="bi bi-exclamation-circle"></i>{{ e }}</div>{% endfor %}
+                            </div>
+                            <div class="col-sm-8 d-flex align-items-end gap-4 pb-1">
+                                <div class="toggle-row border-0 pb-0" style="flex:1;">
+                                    <div><strong>Service item</strong><span>No stock tracking</span></div>
+                                    {{ form.is_service }}
+                                </div>
+                                <div class="toggle-row border-0 pb-0" style="flex:1;">
+                                    <div><strong>VAT exempt</strong><span>No tax applied</span></div>
+                                    {{ form.is_vat_exempt }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pricing -->
+                    <div class="form-section mb-4">
+                        <span class="form-section-title">Pricing ({{ sys.currency_symbol }})</span>
+                        <div class="row g-3">
+                            <div class="col-sm-4">
+                                <label class="form-label" for="{{ form.buying_price.id_for_label }}">Buying Price <span class="required-star">*</span></label>
+                                {{ form.buying_price }}
+                                {% for e in form.buying_price.errors %}<div class="field-error"><i class="bi bi-exclamation-circle"></i>{{ e }}</div>{% endfor %}
+                            </div>
+                            <div class="col-sm-4">
+                                <label class="form-label" for="{{ form.selling_price.id_for_label }}">Selling Price <span class="required-star">*</span></label>
+                                {{ form.selling_price }}
+                                {% for e in form.selling_price.errors %}<div class="field-error"><i class="bi bi-exclamation-circle"></i>{{ e }}</div>{% endfor %}
+                            </div>
+                            <div class="col-sm-4">
+                                <label class="form-label" for="{{ form.wholesale_price.id_for_label }}">Wholesale Price</label>
+                                {{ form.wholesale_price }}
+                            </div>
+                            <div class="col-12">
+                                <div id="getcore-margin-display" class="form-text fw-semibold mt-1"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Stock levels -->
+                    <div class="form-section mb-4">
+                        <span class="form-section-title">Stock Levels</span>
+                        <div class="row g-3">
+                            <div class="col-sm-4">
+                                <label class="form-label" for="{{ form.quantity_in_stock.id_for_label }}">Opening Stock</label>
+                                {{ form.quantity_in_stock }}
+                                {% for e in form.quantity_in_stock.errors %}<div class="field-error"><i class="bi bi-exclamation-circle"></i>{{ e }}</div>{% endfor %}
+                            </div>
+                            <div class="col-sm-4">
+                                <label class="form-label" for="{{ form.reorder_level.id_for_label }}">Reorder Level</label>
+                                {{ form.reorder_level }}
+                                <div class="form-text">Alert when stock falls below this.</div>
+                            </div>
+                            <div class="col-sm-4">
+                                <label class="form-label" for="{{ form.max_stock_level.id_for_label }}">Max Stock</label>
+                                {{ form.max_stock_level }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Active toggle -->
+                    <div class="d-flex align-items-center gap-3 p-3 rounded-3" style="background:var(--nexus-bg);border:1.5px solid var(--nexus-border);">
+                        {{ form.is_active }}
+                        <div>
+                            <div class="fw-semibold" style="font-size:13px;">Active product</div>
+                            <div class="text-muted" style="font-size:11.5px;">Inactive products are hidden from the POS terminal</div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="form-page-footer">
+                    <button type="submit" class="btn btn-nexus px-5">
+                        <i class="bi bi-check-lg me-1"></i>
+                        {% if action == 'Edit Product' %}Update Product{% else %}Add Product{% endif %}
+                    </button>
+                    <a href="/{{ tenant.slug }}/inventory/" class="btn btn-outline-secondary px-4">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

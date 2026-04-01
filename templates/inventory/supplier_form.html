@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}{{ action }} Supplier — {{ sys.business_name }}{% endblock %}
+{% block breadcrumb %}
+    <a href="/{{ tenant.slug }}/inventory/" class="text-muted text-decoration-none">Inventory</a> /
+    <a href="/{{ tenant.slug }}/inventory/suppliers/" class="text-muted text-decoration-none">Suppliers</a>
+    / {{ action }}
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-7 col-xl-6">
+        <div class="form-page-card">
+            <div class="form-page-header" style="background:linear-gradient(90deg,rgba(var(--nexus-primary-rgb),.05) 0%,transparent 100%);">
+                <div class="d-flex align-items-center gap-3">
+                    <div style="width:40px;height:40px;border-radius:10px;background:rgba(var(--nexus-primary-rgb),.1);display:flex;align-items:center;justify-content:center;">
+                        <i class="bi bi-truck" style="color:var(--nexus-primary);font-size:1.1rem;"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold mb-0">{{ action }} Supplier</h5>
+                        <p class="text-muted small mb-0">Manage vendors and product suppliers</p>
+                    </div>
+                </div>
+            </div>
+            <form method="post" novalidate>
+                {% csrf_token %}
+                {% if form.non_field_errors %}
+                <div class="alert alert-danger mx-4 mt-4">{{ form.non_field_errors }}</div>
+                {% endif %}
+                <div class="form-page-body">
+                    <div class="form-section mb-4">
+                        <span class="form-section-title">Business Info</span>
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label" for="{{ form.name.id_for_label }}">Business Name <span class="required-star">*</span></label>
+                                {{ form.name }}
+                                {% for e in form.name.errors %}<div class="field-error"><i class="bi bi-exclamation-circle"></i>{{ e }}</div>{% endfor %}
+                            </div>
+                            <div class="col-sm-6">
+                                <label class="form-label" for="{{ form.contact_person.id_for_label }}">Contact Person</label>
+                                {{ form.contact_person }}
+                            </div>
+                            <div class="col-sm-6">
+                                <label class="form-label" for="{{ form.kra_pin.id_for_label }}">KRA PIN</label>
+                                {{ form.kra_pin }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-section mb-4">
+                        <span class="form-section-title">Contact Details</span>
+                        <div class="row g-3">
+                            <div class="col-sm-6">
+                                <label class="form-label" for="{{ form.phone.id_for_label }}">Phone</label>
+                                {{ form.phone }}
+                            </div>
+                            <div class="col-sm-6">
+                                <label class="form-label" for="{{ form.email.id_for_label }}">Email</label>
+                                {{ form.email }}
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label" for="{{ form.address.id_for_label }}">Address</label>
+                                {{ form.address }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label" for="{{ form.notes.id_for_label }}">Notes</label>
+                        {{ form.notes }}
+                    </div>
+                    <div class="d-flex align-items-center gap-3 p-3 rounded-3" style="background:var(--nexus-bg);border:1.5px solid var(--nexus-border);">
+                        {{ form.is_active }}
+                        <div>
+                            <div class="fw-semibold" style="font-size:13px;">Active supplier</div>
+                            <div class="text-muted" style="font-size:11.5px;">Inactive suppliers are hidden from product dropdowns</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-page-footer">
+                    <button type="submit" class="btn btn-nexus px-5">
+                        <i class="bi bi-check-lg me-1"></i>Save Supplier
+                    </button>
+                    <a href="/{{ tenant.slug }}/inventory/suppliers/" class="btn btn-outline-secondary px-4">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block title %}Users — {{ sys.business_name }}{% endblock %}
+{% block breadcrumb %}<i class="bi bi-people me-1"></i> User Management{% endblock %}
+
+{% block extra_head %}
+<style>
+.user-avatar {
+    width:38px; height:38px; border-radius:50%; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    font-weight:700; font-size:.85rem; color:white;
+}
+.role-admin   { background:#ef4444; }
+.role-manager { background:#f59e0b; color:#000 !important; }
+.role-cashier { background:var(--nexus-primary); }
+.role-waiter  { background:#8b5cf6; }
+.login-badge-pin { background:#e0f2fe; color:#0369a1; font-size:11px; }
+.login-badge-pwd { background:#f1f5f9; color:#334155; font-size:11px; }
+.status-active   { background:#dcfce7; color:#16a34a; }
+.status-inactive { background:#fee2e2; color:#dc2626; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <h4 class="fw-bold mb-1">User Management</h4>
+        <p class="text-muted small mb-0">Manage staff, cashiers and administrators</p>
+    </div>
+    <a href="/{{ tenant.slug }}/users/manage/create/" class="btn btn-nexus">
+        <i class="bi bi-person-plus me-1"></i>Add User
+    </a>
+</div>
+
+<!-- Role summary pills -->
+<div class="d-flex gap-2 flex-wrap mb-4">
+    {% regroup users by get_role_display as users_by_role %}
+    {% for group in users_by_role %}
+    <span class="badge px-3 py-2" style="background:var(--nexus-bg);color:var(--nexus-text);border:1px solid var(--nexus-border);font-size:12px;font-weight:600;">
+        {{ group.grouper }}: {{ group.list|length }}
+    </span>
+    {% endfor %}
+    <span class="badge px-3 py-2 ms-auto" style="background:var(--nexus-bg);color:var(--nexus-muted);border:1px solid var(--nexus-border);font-size:12px;">
+        {{ users|length }} total
+    </span>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--nexus-muted);background:var(--nexus-bg);">
+                <tr>
+                    <th class="ps-4 py-3">User</th>
+                    <th class="py-3">Role</th>
+                    <th class="py-3">Login</th>
+                    <th class="py-3">Phone</th>
+                    <th class="py-3">Last Login</th>
+                    <th class="py-3 text-center">Status</th>
+                    <th class="py-3 text-center pe-4">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in users %}
+                <tr>
+                    <td class="ps-4 py-3">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="user-avatar {% if u.role == 'admin' %}role-admin{% elif u.role == 'manager' %}role-manager{% elif u.role == 'cashier' %}role-cashier{% else %}role-waiter{% endif %}">
+                                {{ u.first_name.0|default:u.username.0|upper }}
+                            </div>
+                            <div>
+                                <div class="fw-semibold" style="font-size:13px;">{{ u.get_full_name|default:u.username }}</div>
+                                <div class="text-muted" style="font-size:11px;">@{{ u.username }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="badge rounded-pill px-3 py-1
+                            {% if u.role == 'admin' %}bg-danger
+                            {% elif u.role == 'manager' %}bg-warning text-dark
+                            {% elif u.role == 'cashier' %}bg-primary
+                            {% else %}bg-secondary{% endif %}">
+                            {{ u.get_role_display }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if u.is_floor_staff %}
+                        <span class="badge rounded-pill login-badge-pin px-2 py-1">
+                            <i class="bi bi-person-badge me-1"></i>PIN
+                        </span>
+                        {% else %}
+                        <span class="badge rounded-pill login-badge-pwd px-2 py-1">
+                            <i class="bi bi-shield-lock me-1"></i>Password
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td class="small text-muted">{{ u.phone_number|default:"—" }}</td>
+                    <td class="small text-muted">{{ u.last_login|date:"d M Y H:i"|default:"Never" }}</td>
+                    <td class="text-center">
+                        <span class="badge rounded-pill px-2 py-1 {% if u.is_active %}status-active{% else %}status-inactive{% endif %}">
+                            {% if u.is_active %}Active{% else %}Inactive{% endif %}
+                        </span>
+                    </td>
+                    <td class="text-center pe-4">
+                        <a href="/{{ tenant.slug }}/users/manage/{{ u.pk }}/edit/"
+                           class="btn btn-sm btn-outline-primary" title="Edit">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        {% if u != request.user %}
+                        <a href="/{{ tenant.slug }}/users/manage/{{ u.pk }}/toggle/"
+                           class="btn btn-sm btn-outline-{% if u.is_active %}warning{% else %}success{% endif %}"
+                           onclick="return confirm('{% if u.is_active %}Deactivate{% else %}Activate{% endif %} {{ u.username }}?')"
+                           title="{% if u.is_active %}Deactivate{% else %}Activate{% endif %}">
+                            <i class="bi bi-{% if u.is_active %}pause{% else %}play{% endif %}"></i>
+                        </a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center py-5 text-muted">
+                        <i class="bi bi-people fs-1 d-block mb-2 opacity-25"></i>
+                        No users yet.
+                        <a href="/{{ tenant.slug }}/users/manage/create/">Create the first user →</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

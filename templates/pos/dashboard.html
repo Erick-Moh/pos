@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block title %}Dashboard — {{ sys.business_name }}{% endblock %}
+{% block breadcrumb %}<i class="bi bi-speedometer2 me-1"></i> Dashboard{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-0">Good {% now "G" as hour %}{% if hour < 12 %}Morning{% elif hour < 17 %}Afternoon{% else %}Evening{% endif %}, {{ user.first_name|default:user.username }}!</h4>
+        <p class="text-muted small mb-0">{% now "l, d F Y" %} &bull; {{ sys.business_name }}</p>
+    </div>
+    <a href="/{{ tenant.slug }}/pos/terminal/" class="btn btn-nexus btn-lg px-4">
+        <i class="bi bi-cart3 me-2"></i>Open POS Terminal
+    </a>
+</div>
+
+<!-- KPI Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <p class="text-muted small mb-1">Today's Revenue</p>
+                        <h3 class="fw-bold mb-0">{{ currency }} {{ today_revenue|floatformat:2|intcomma }}</h3>
+                    </div>
+                    <div class="rounded-3 p-3" style="background:rgba(13,110,253,0.1);">
+                        <i class="bi bi-cash-coin fs-4" style="color:var(--nexus-primary);"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <p class="text-muted small mb-1">Today's Transactions</p>
+                        <h3 class="fw-bold mb-0">{{ today_count|intcomma }}</h3>
+                    </div>
+                    <div class="rounded-3 p-3" style="background:rgba(25,135,84,0.1);">
+                        <i class="bi bi-receipt fs-4 text-success"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <p class="text-muted small mb-1">Low Stock Alerts</p>
+                        <h3 class="fw-bold mb-0 {% if low_stock %}text-warning{% endif %}">{{ low_stock|length }}</h3>
+                    </div>
+                    <div class="rounded-3 p-3" style="background:rgba(255,193,7,0.1);">
+                        <i class="bi bi-exclamation-triangle fs-4 text-warning"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <p class="text-muted small mb-1">Active User</p>
+                        <h4 class="fw-bold mb-0">{{ user.get_role_display }}</h4>
+                    </div>
+                    <div class="rounded-3 p-3" style="background:rgba(108,117,125,0.1);">
+                        <i class="bi bi-person-check fs-4 text-secondary"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <!-- Recent Sales -->
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center pt-3">
+                <h6 class="fw-semibold mb-0"><i class="bi bi-clock-history me-2"></i>Recent Sales</h6>
+                <a href="/{{ tenant.slug }}/pos/sales/" class="btn btn-sm btn-outline-secondary">View All</a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-3">Invoice</th>
+                                <th>Cashier</th>
+                                <th>Payment</th>
+                                <th class="text-end pe-3">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sale in recent_sales %}
+                            <tr>
+                                <td class="ps-3">
+                                    <a href="/{{ tenant.slug }}/pos/sales/{{ sale.pk }}/" class="text-decoration-none fw-medium">
+                                        {{ sale.invoice_number }}
+                                    </a>
+                                    <br><small class="text-muted">{{ sale.created_at|timesince }} ago</small>
+                                </td>
+                                <td><small>{{ sale.served_by.get_full_name|default:sale.served_by.username }}</small></td>
+                                <td>
+                                    <span class="badge
+                                        {% if sale.payment_method == 'mpesa' %}bg-success
+                                        {% elif sale.payment_method == 'card' %}bg-info
+                                        {% else %}bg-secondary{% endif %}">
+                                        {% if sale.payment_method == 'mpesa' %}M-Pesa
+                                        {% elif sale.payment_method == 'cash' %}Cash
+                                        {% else %}{{ sale.get_payment_method_display }}{% endif %}
+                                    </span>
+                                </td>
+                                <td class="text-end pe-3 fw-semibold">{{ currency }} {{ sale.total_amount|floatformat:2|intcomma }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="4" class="text-center text-muted py-4">No sales today yet.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Low Stock Panel -->
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center pt-3">
+                <h6 class="fw-semibold mb-0 text-warning"><i class="bi bi-exclamation-triangle me-2"></i>Low Stock</h6>
+                <a href="/{{ tenant.slug }}/inventory/?low_stock=1" class="btn btn-sm btn-outline-warning">View All</a>
+            </div>
+            <div class="card-body p-0">
+                {% for product in low_stock %}
+                <div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom">
+                    <div>
+                        <div class="small fw-medium">{{ product.name }}</div>
+                        <div class="small text-muted">{{ product.category }}</div>
+                    </div>
+                    <span class="badge bg-danger">{{ product.quantity_in_stock }} {{ product.unit }}</span>
+                </div>
+                {% empty %}
+                <div class="text-center text-muted py-4 small">
+                    <i class="bi bi-check-circle text-success d-block fs-3 mb-2"></i>
+                    All stock levels OK
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

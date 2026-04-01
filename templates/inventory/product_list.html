@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block title %}Inventory — {{ sys.business_name }}{% endblock %}
+{% block breadcrumb %}<i class="bi bi-boxes me-1"></i> Inventory{% endblock %}
+
+{% block extra_head %}
+<style>
+.inv-kpi { background:var(--nexus-surface); border:1.5px solid var(--nexus-border); border-radius:12px; padding:16px 20px; }
+.inv-kpi-val { font-size:1.5rem; font-weight:800; line-height:1.1; }
+.inv-kpi-lbl { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--nexus-muted); margin-top:2px; }
+.prod-thumb { width:36px; height:36px; border-radius:8px; object-fit:cover; flex-shrink:0; }
+.prod-thumb-placeholder { width:36px; height:36px; border-radius:8px; background:var(--nexus-bg); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.stock-badge { font-size:12px; font-weight:600; padding:4px 10px; border-radius:20px; }
+.stock-ok   { background:#dcfce7; color:#16a34a; }
+.stock-low  { background:#fee2e2; color:#dc2626; }
+.stock-none { background:#f1f5f9; color:#64748b; }
+.tbl-actions { display:flex; gap:4px; justify-content:center; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <h4 class="fw-bold mb-1">Inventory</h4>
+        <p class="text-muted small mb-0">Manage products, stock levels and alerts</p>
+    </div>
+    {% if user.is_admin_role %}
+    <div class="d-flex gap-2">
+        <a href="/{{ tenant.slug }}/inventory/adjust/" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left-right me-1"></i>Stock Adjustment
+        </a>
+        <a href="/{{ tenant.slug }}/inventory/add/" class="btn btn-nexus">
+            <i class="bi bi-plus-lg me-1"></i>Add Product
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- KPI row -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="inv-kpi">
+            <div class="inv-kpi-val">{{ products|length|intcomma }}</div>
+            <div class="inv-kpi-lbl">Total Products</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="inv-kpi" style="border-color:#fecaca;">
+            <div class="inv-kpi-val text-danger">{{ low_stock_count|intcomma }}</div>
+            <div class="inv-kpi-lbl">Low Stock</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="inv-kpi">
+            <div class="inv-kpi-val">{{ categories|length|intcomma }}</div>
+            <div class="inv-kpi-lbl">Categories</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        {% if user.is_admin_role %}
+        <a href="/{{ tenant.slug }}/inventory/categories/" class="inv-kpi d-block text-decoration-none" style="border-style:dashed;">
+            <div class="inv-kpi-val" style="font-size:1.2rem;color:var(--nexus-primary);"><i class="bi bi-tags me-1"></i>Categories</div>
+            <div class="inv-kpi-lbl">& <span style="color:var(--nexus-primary);">Suppliers →</span></div>
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Low stock alert -->
+{% if low_stock_count > 0 %}
+<div class="alert d-flex align-items-center gap-2 mb-3" style="background:#fff7ed;border:1.5px solid #fed7aa;border-radius:10px;color:#9a3412;">
+    <i class="bi bi-exclamation-triangle-fill fs-5 flex-shrink-0"></i>
+    <div><strong>{{ low_stock_count }} product{{ low_stock_count|pluralize }}</strong> below reorder level.
+    <a href="?low_stock=1" style="color:#9a3412;font-weight:600;">View low stock →</a></div>
+</div>
+{% endif %}
+
+<!-- Filters -->
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-body py-2 px-3">
+        <form method="get" class="d-flex flex-wrap gap-2 align-items-center">
+            <div class="input-group flex-grow-1" style="min-width:200px;max-width:340px;">
+                <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted small"></i></span>
+                <input type="text" name="q" value="{{ query }}" class="form-control border-start-0 ps-0" placeholder="Search name, SKU, barcode…">
+            </div>
+            <select name="category" class="form-select" style="max-width:180px;">
+                <option value="">All Categories</option>
+                {% for cat in categories %}
+                <option value="{{ cat.pk }}" {% if selected_category == cat.pk|stringformat:"i" %}selected{% endif %}>{{ cat.name }}</option>
+                {% endfor %}
+            </select>
+            <div class="form-check form-switch ms-1 mb-0">
+                <input class="form-check-input" type="checkbox" name="low_stock" id="lowStockChk"
+                       value="1" {% if low_stock_filter %}checked{% endif %} onchange="this.form.submit()">
+                <label class="form-check-label small" for="lowStockChk">Low stock only</label>
+            </div>
+            <div class="d-flex gap-1">
+                <button type="submit" class="btn btn-sm btn-outline-primary px-3">Filter</button>
+                <a href="/{{ tenant.slug }}/inventory/" class="btn btn-sm btn-outline-secondary px-3">Reset</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Product table -->
+<div class="card border-0 shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--nexus-muted);background:var(--nexus-bg);">
+                <tr>
+                    <th class="ps-4 py-3">Product</th>
+                    <th class="py-3">Category</th>
+                    <th class="py-3 text-end">Buy</th>
+                    <th class="py-3 text-end">Sell</th>
+                    <th class="py-3 text-center">Stock</th>
+                    <th class="py-3 text-center pe-4">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for product in products %}
+                <tr>
+                    <td class="ps-4 py-3">
+                        <div class="d-flex align-items-center gap-3">
+                            {% if product.image %}
+                            <img src="{{ product.image.url }}" class="prod-thumb" alt="{{ product.name }}">
+                            {% else %}
+                            <div class="prod-thumb-placeholder">
+                                <i class="bi bi-box text-muted" style="font-size:.85rem;"></i>
+                            </div>
+                            {% endif %}
+                            <div>
+                                <div class="fw-semibold" style="font-size:13px;">{{ product.name }}</div>
+                                <div class="text-muted" style="font-size:11px;">
+                                    {{ product.sku|default:"no SKU" }}
+                                    {% if product.is_service %}<span class="badge bg-info-subtle text-info ms-1" style="font-size:10px;">Service</span>{% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                    <td><span class="small text-muted">{{ product.category|default:"—" }}</span></td>
+                    <td class="text-end small">{{ sys.currency_symbol }} {{ product.buying_price|floatformat:2|intcomma }}</td>
+                    <td class="text-end fw-semibold small">{{ sys.currency_symbol }} {{ product.selling_price|floatformat:2|intcomma }}</td>
+                    <td class="text-center">
+                        {% if product.is_service %}
+                        <span class="stock-badge stock-none">N/A</span>
+                        {% elif product.is_low_stock %}
+                        <span class="stock-badge stock-low">{{ product.quantity_in_stock|intcomma }} {{ product.unit }}</span>
+                        {% else %}
+                        <span class="stock-badge stock-ok">{{ product.quantity_in_stock|intcomma }} {{ product.unit }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="pe-4">
+                        <div class="tbl-actions">
+                            <a href="/{{ tenant.slug }}/inventory/{{ product.pk }}/" class="btn btn-sm btn-outline-secondary" title="View"><i class="bi bi-eye"></i></a>
+                            {% if user.is_admin_role %}
+                            <a href="/{{ tenant.slug }}/inventory/{{ product.pk }}/edit/" class="btn btn-sm btn-outline-primary" title="Edit"><i class="bi bi-pencil"></i></a>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center py-5 text-muted">
+                        <i class="bi bi-boxes fs-1 d-block mb-2 opacity-25"></i>
+                        No products found.
+                        {% if user.is_admin_role %}<a href="/{{ tenant.slug }}/inventory/add/">Add your first product →</a>{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if user.is_admin_role %}
+    <div class="card-footer bg-transparent border-0 py-2 px-3 d-flex gap-2">
+        <a href="/{{ tenant.slug }}/inventory/categories/" class="btn btn-sm btn-outline-secondary"><i class="bi bi-tags me-1"></i>Categories</a>
+        <a href="/{{ tenant.slug }}/inventory/suppliers/" class="btn btn-sm btn-outline-secondary"><i class="bi bi-truck me-1"></i>Suppliers</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

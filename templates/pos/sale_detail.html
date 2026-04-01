@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block title %}Sale {{ sale.invoice_number }} — {{ sys.business_name }}{% endblock %}
+{% block breadcrumb %}<a href="/{{ tenant.slug }}/pos/sales/" class="text-muted text-decoration-none">Sales</a> / {{ sale.invoice_number }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="fw-bold mb-0">{{ sale.invoice_number }}</h4>
+            <div class="d-flex gap-2">
+                <a href="/{{ tenant.slug }}/pos/receipt/{{ sale.pk }}/" class="btn btn-outline-secondary" target="_blank">
+                    <i class="bi bi-printer me-1"></i>Print
+                </a>
+                {% if user.is_admin_role and sale.status == 'completed' %}
+                <a href="/{{ tenant.slug }}/pos/sales/{{ sale.pk }}/void/" class="btn btn-outline-danger">
+                    <i class="bi bi-x-circle me-1"></i>Void
+                </a>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+
+                <!-- Header Info -->
+                <div class="row mb-3 pb-3 border-bottom">
+                    <div class="col-6">
+                        <div class="text-muted small">Date</div>
+                        <div class="fw-medium">{{ sale.created_at|date:"d F Y, H:i" }}</div>
+                    </div>
+                    <div class="col-6 text-end">
+                        <span class="badge fs-6 {% if sale.status == 'completed' %}bg-success{% elif sale.status == 'voided' %}bg-danger{% else %}bg-warning{% endif %}">
+                            {{ sale.get_status_display }}
+                        </span>
+                    </div>
+                    <div class="col-6 mt-2">
+                        <div class="text-muted small">Cashier</div>
+                        <div>{{ sale.served_by.get_full_name|default:sale.served_by.username }}</div>
+                    </div>
+                    <div class="col-6 mt-2">
+                        <div class="text-muted small">Customer</div>
+                        <div>{{ sale.customer.name|default:"Walk-in Customer" }}</div>
+                    </div>
+                </div>
+
+                <!-- Items -->
+                <h6 class="fw-semibold mb-2">Items</h6>
+                <table class="table table-sm mb-3">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Product</th>
+                            <th class="text-center">Qty</th>
+                            <th class="text-end">Unit Price</th>
+                            <th class="text-end">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in sale.items.all %}
+                        <tr>
+                            <td>{{ item.product_name }}</td>
+                            <td class="text-center">{{ item.quantity }}</td>
+                            <td class="text-end">{{ sys.currency_symbol }} {{ item.unit_price|floatformat:2|intcomma }}</td>
+                            <td class="text-end fw-medium">{{ sys.currency_symbol }} {{ item.line_total|floatformat:2|intcomma }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+                <!-- Totals -->
+                <div class="row justify-content-end">
+                    <div class="col-md-5">
+                        <table class="table table-sm">
+                            <tr><td class="text-muted">Subtotal</td><td class="text-end">{{ sys.currency_symbol }} {{ sale.subtotal|floatformat:2|intcomma }}</td></tr>
+                            {% if sale.discount_amount > 0 %}
+                            <tr><td class="text-muted">Discount</td><td class="text-end text-danger">-{{ sys.currency_symbol }} {{ sale.discount_amount|floatformat:2|intcomma }}</td></tr>
+                            {% endif %}
+                            <tr><td class="text-muted">VAT</td><td class="text-end">{{ sys.currency_symbol }} {{ sale.vat_amount|floatformat:2|intcomma }}</td></tr>
+                            <tr class="fw-bold border-top"><td>TOTAL</td><td class="text-end fs-5" style="color:var(--nexus-primary);">{{ sys.currency_symbol }} {{ sale.total_amount|floatformat:2|intcomma }}</td></tr>
+                            <tr><td class="text-muted">{{ sale.get_payment_method_display }}</td><td class="text-end">{{ sys.currency_symbol }} {{ sale.amount_tendered|floatformat:2|intcomma }}</td></tr>
+                            {% if sale.change_given > 0 %}
+                            <tr><td class="text-muted">Change</td><td class="text-end">{{ sys.currency_symbol }} {{ sale.change_given|floatformat:2|intcomma }}</td></tr>
+                            {% endif %}
+                        </table>
+                    </div>
+                </div>
+
+                <!-- eTIMS / KRA section -->
+                {% if sale.kra_invoice_number or sale.fiscal_signature %}
+                <div class="alert alert-success mt-3">
+                    <div class="fw-semibold mb-1"><i class="bi bi-shield-check me-2"></i>KRA eTIMS Fiscalized</div>
+                    {% if sale.kra_invoice_number %}<div class="small">KRA Invoice: {{ sale.kra_invoice_number }}</div>{% endif %}
+                    {% if sale.qr_code_url %}<div class="small">QR: <a href="{{ sale.qr_code_url }}" target="_blank">{{ sale.qr_code_url|truncatechars:50 }}</a></div>{% endif %}
+                </div>
+                {% endif %}
+
+                {% if sale.void_reason %}
+                <div class="alert alert-danger mt-3">
+                    <strong>Void Reason:</strong> {{ sale.void_reason }}
+                </div>
+                {% endif %}
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

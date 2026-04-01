@@ -1,0 +1,114 @@
+{% load humanize %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Receipt {{ sale.invoice_number }}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Courier New', monospace; font-size: 12px; max-width: 300px; margin: 0 auto; padding: 10px; }
+        .center { text-align: center; }
+        .bold { font-weight: bold; }
+        .divider { border-top: 1px dashed #333; margin: 6px 0; }
+        .row { display: flex; justify-content: space-between; margin: 2px 0; }
+        .total-row { font-size: 14px; font-weight: bold; }
+        .footer { font-size: 10px; text-align: center; margin-top: 10px; }
+        .qr-placeholder { border: 1px solid #ccc; padding: 10px; text-align: center; margin: 8px 0; font-size: 10px; }
+        @media print {
+            .no-print { display: none !important; }
+            body { margin: 0; padding: 5px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Business Header -->
+<div class="center">
+    {% if sys.logo %}
+    <img src="{{ sys.logo.url }}" style="max-height:40px; margin-bottom:4px;"><br>
+    {% endif %}
+    <div class="bold" style="font-size:14px;">{{ sys.business_name|upper }}</div>
+    {% if sys.physical_address %}<div>{{ sys.physical_address }}</div>{% endif %}
+    {% if sys.contact_phone %}<div>Tel: {{ sys.contact_phone }}</div>{% endif %}
+    {% if sys.kra_pin %}<div>KRA PIN: {{ sys.kra_pin }}</div>{% endif %}
+</div>
+
+<div class="divider"></div>
+
+<!-- Invoice Details -->
+<div class="row"><span>Invoice:</span><span class="bold">{{ sale.invoice_number }}</span></div>
+<div class="row"><span>Date:</span><span>{{ sale.created_at|date:"d/m/Y H:i" }}</span></div>
+<div class="row"><span>Cashier:</span><span>{{ sale.served_by.get_full_name|default:sale.served_by.username }}</span></div>
+{% if sale.customer %}<div class="row"><span>Customer:</span><span>{{ sale.customer.name }}</span></div>{% endif %}
+
+<div class="divider"></div>
+
+<!-- Items -->
+<div class="bold" style="margin-bottom:4px;">ITEMS</div>
+{% for item in sale.items.all %}
+<div>{{ item.product_name }}</div>
+<div class="row">
+    <span>&nbsp;&nbsp;{{ item.quantity }} x {{ sys.currency_symbol }} {{ item.unit_price|floatformat:2|intcomma }}</span>
+    <span>{{ sys.currency_symbol }} {{ item.line_total|floatformat:2|intcomma }}</span>
+</div>
+{% endfor %}
+
+<div class="divider"></div>
+
+<!-- Totals -->
+<div class="row"><span>Subtotal:</span><span>{{ sys.currency_symbol }} {{ sale.subtotal|floatformat:2|intcomma }}</span></div>
+{% if sale.discount_amount > 0 %}
+<div class="row"><span>Discount:</span><span>- {{ sys.currency_symbol }} {{ sale.discount_amount|floatformat:2|intcomma }}</span></div>
+{% endif %}
+{% if sys.show_vat_on_receipt %}
+<div class="row"><span>VAT ({{ sys.vat_rate }}%):</span><span>{{ sys.currency_symbol }} {{ sale.vat_amount|floatformat:2|intcomma }}</span></div>
+{% endif %}
+<div class="divider"></div>
+<div class="row total-row">
+    <span>TOTAL:</span>
+    <span>{{ sys.currency_symbol }} {{ sale.total_amount|floatformat:2|intcomma }}</span>
+</div>
+<div class="row"><span>Paid ({{ sale.get_payment_method_display }}):</span><span>{{ sys.currency_symbol }} {{ sale.amount_tendered|floatformat:2|intcomma }}</span></div>
+{% if sale.change_given > 0 %}
+<div class="row"><span>Change:</span><span>{{ sys.currency_symbol }} {{ sale.change_given|floatformat:2|intcomma }}</span></div>
+{% endif %}
+{% if sale.mpesa_transaction_code %}
+<div class="row"><span>M-Pesa Ref:</span><span>{{ sale.mpesa_transaction_code }}</span></div>
+{% endif %}
+
+<!-- eTIMS / KRA Section -->
+{% if sale.kra_invoice_number or sale.fiscal_signature %}
+<div class="divider"></div>
+<div class="center" style="font-size:10px;">
+    <div class="bold">KRA eTIMS DETAILS</div>
+    {% if sale.kra_invoice_number %}<div>KRA Invoice: {{ sale.kra_invoice_number }}</div>{% endif %}
+    {% if sale.qr_code_url %}
+    <div class="qr-placeholder">QR: {{ sale.qr_code_url|truncatechars:40 }}</div>
+    {% endif %}
+    {% if sale.fiscal_signature %}
+    <div style="word-break:break-all;font-size:9px;">Sig: {{ sale.fiscal_signature|truncatechars:60 }}</div>
+    {% endif %}
+</div>
+{% endif %}
+
+<div class="divider"></div>
+
+<!-- Footer -->
+<div class="footer">
+    {{ sys.receipt_footer_text|default:"Thank you for your business!" }}
+    <br>
+    <small>Printed: {% now "d/m/Y H:i" %}</small>
+</div>
+
+<!-- Print / Back Buttons -->
+<div class="no-print" style="margin-top:20px;text-align:center;font-family:sans-serif;">
+    <button onclick="window.print()" style="background:#0d6efd;color:#fff;border:none;padding:10px 24px;border-radius:6px;cursor:pointer;margin-right:8px;">
+        🖨️ Print Receipt
+    </button>
+    <a href="/{{ tenant.slug }}/pos/terminal/" style="background:#6c757d;color:#fff;padding:10px 24px;border-radius:6px;text-decoration:none;">
+        ← New Sale
+    </a>
+</div>
+
+</body>
+</html>

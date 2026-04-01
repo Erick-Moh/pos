@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}Stock Adjustment — {{ sys.business_name }}{% endblock %}
+{% block breadcrumb %}
+    <a href="/{{ tenant.slug }}/inventory/" class="text-muted text-decoration-none">Inventory</a> / Stock Adjustment
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-7 col-xl-6">
+        <div class="form-page-card">
+            <div class="form-page-header" style="background:linear-gradient(90deg,rgba(var(--nexus-primary-rgb),.05) 0%,transparent 100%);">
+                <div class="d-flex align-items-center gap-3">
+                    <div style="width:40px;height:40px;border-radius:10px;background:rgba(var(--nexus-primary-rgb),.1);display:flex;align-items:center;justify-content:center;">
+                        <i class="bi bi-arrow-left-right" style="color:var(--nexus-primary);font-size:1.1rem;"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold mb-0">Stock Adjustment</h5>
+                        <p class="text-muted small mb-0">Record purchases, damages, returns or manual corrections</p>
+                    </div>
+                </div>
+            </div>
+
+            <form method="post" novalidate>
+                {% csrf_token %}
+                {% if form.non_field_errors %}
+                <div class="alert alert-danger mx-4 mt-4">{{ form.non_field_errors }}</div>
+                {% endif %}
+
+                <div class="form-page-body">
+                    <div class="mb-4">
+                        <label class="form-label" for="{{ form.product.id_for_label }}">Product <span class="required-star">*</span></label>
+                        {{ form.product }}
+                        <div class="form-text">Search by name or SKU.</div>
+                        {% for e in form.product.errors %}<div class="field-error"><i class="bi bi-exclamation-circle"></i>{{ e }}</div>{% endfor %}
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-sm-6">
+                            <label class="form-label" for="{{ form.movement_type.id_for_label }}">Movement Type <span class="required-star">*</span></label>
+                            {{ form.movement_type }}
+                            {% for e in form.movement_type.errors %}<div class="field-error"><i class="bi bi-exclamation-circle"></i>{{ e }}</div>{% endfor %}
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label" for="{{ form.quantity.id_for_label }}">Quantity <span class="required-star">*</span></label>
+                            {{ form.quantity }}
+                            {% for e in form.quantity.errors %}<div class="field-error"><i class="bi bi-exclamation-circle"></i>{{ e }}</div>{% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Sign helper -->
+                    <div class="d-flex gap-3 mb-4">
+                        <div class="flex-grow-1 p-3 rounded-3 text-center" style="background:#f0fdf4;border:1.5px solid #bbf7d0;">
+                            <div class="fw-bold text-success mb-1">+  Positive</div>
+                            <div class="text-muted small">Adds to stock<br>e.g. Purchase, Return</div>
+                        </div>
+                        <div class="flex-grow-1 p-3 rounded-3 text-center" style="background:#fff1f2;border:1.5px solid #fecdd3;">
+                            <div class="fw-bold text-danger mb-1">−  Negative</div>
+                            <div class="text-muted small">Removes from stock<br>e.g. Damage, Correction</div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-sm-6">
+                            <label class="form-label" for="{{ form.unit_cost.id_for_label }}">Unit Cost ({{ sys.currency_symbol }})</label>
+                            {{ form.unit_cost }}
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label" for="{{ form.reference.id_for_label }}">Reference #</label>
+                            {{ form.reference }}
+                            <div class="form-text">Invoice or purchase order number.</div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="form-label" for="{{ form.notes.id_for_label }}">Notes</label>
+                        {{ form.notes }}
+                    </div>
+                </div>
+
+                <div class="form-page-footer">
+                    <button type="submit" class="btn btn-nexus px-5">
+                        <i class="bi bi-check-lg me-1"></i>Record Adjustment
+                    </button>
+                    <a href="/{{ tenant.slug }}/inventory/" class="btn btn-outline-secondary px-4">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,371 @@
+{% extends "base.html" %}
+{% block title %}Settings — {{ sys.business_name }}{% endblock %}
+{% block breadcrumb %}<i class="bi bi-gear me-1"></i> System Settings{% endblock %}
+
+{% block extra_head %}
+<style>
+/* ── Section header strip ── */
+.settings-card-header {
+    display: flex; align-items: center; gap: 10px;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--nexus-border);
+    background: linear-gradient(90deg, rgba(var(--nexus-primary-rgb),.04) 0%, transparent 100%);
+}
+.settings-card-icon {
+    width: 34px; height: 34px; border-radius: 8px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem;
+}
+.settings-card-header h6 { margin: 0; font-size: 14px; font-weight: 700; }
+.settings-card-header p  { margin: 0; font-size: 11.5px; color: var(--nexus-muted); }
+
+/* ── Colour picker card ── */
+.colour-picker-card {
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    padding: 14px 10px;
+    border: 2px solid var(--nexus-border);
+    border-radius: 12px;
+    cursor: pointer; transition: all .18s;
+    background: var(--nexus-surface);
+    position: relative; overflow: hidden;
+}
+.colour-picker-card:hover { border-color: var(--nexus-primary); box-shadow: 0 4px 12px rgba(var(--nexus-primary-rgb),.12); }
+.colour-picker-card input[type="color"] {
+    width: 52px; height: 52px; border: none; border-radius: 50%;
+    padding: 0; cursor: pointer; background: none;
+    -webkit-appearance: none; appearance: none;
+}
+.colour-picker-card input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; border-radius: 50%; }
+.colour-picker-card input[type="color"]::-webkit-color-swatch { border: none; border-radius: 50%; box-shadow: 0 2px 8px rgba(0,0,0,.2); }
+.colour-picker-card label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--nexus-muted); margin: 0; }
+.colour-hex { font-size: 12px; font-weight: 600; font-family: 'JetBrains Mono', monospace; color: var(--nexus-text); }
+
+/* ── Colour preview bar ── */
+.colour-preview-bar {
+    height: 8px; border-radius: 8px; overflow: hidden;
+    display: flex; gap: 4px; margin-top: 16px;
+}
+.colour-preview-bar div { flex: 1; border-radius: 4px; transition: background .3s; }
+
+/* ── Toggle row ── */
+.toggle-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--nexus-border);
+}
+.toggle-row:last-child { border-bottom: none; padding-bottom: 0; }
+.toggle-row-info { flex: 1; min-width: 0; padding-right: 16px; }
+.toggle-row-info strong { font-size: 13px; font-weight: 600; display: block; }
+.toggle-row-info span  { font-size: 11.5px; color: var(--nexus-muted); }
+
+/* ── Sticky save bar ── */
+.settings-save-bar {
+    position: sticky; bottom: 0;
+    background: var(--nexus-surface);
+    border-top: 1px solid var(--nexus-border);
+    padding: 14px 0;
+    margin: 24px -24px -24px;
+    padding-left: 24px; padding-right: 24px;
+    box-shadow: 0 -4px 16px rgba(0,0,0,.06);
+    z-index: 50;
+    display: flex; align-items: center; gap: 12px;
+}
+
+/* ── eTIMS feature box ── */
+.feature-box {
+    border-radius: 12px; padding: 16px;
+    display: flex; align-items: flex-start; gap: 14px;
+}
+.feature-box-icon {
+    width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 1.1rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h4 class="fw-bold mb-1">System Settings</h4>
+        <p class="text-muted small mb-0">Business identity, branding, tax compliance and operational preferences.</p>
+    </div>
+</div>
+
+<form method="post" enctype="multipart/form-data" novalidate id="settingsForm">
+{% csrf_token %}
+{% if form.non_field_errors %}
+<div class="alert alert-danger mb-4"><i class="bi bi-exclamation-circle-fill me-2"></i>{{ form.non_field_errors }}</div>
+{% endif %}
+
+<div class="row g-4">
+
+    <!-- ══ Business Identity ══ -->
+    <div class="col-xl-6">
+        <div class="form-page-card h-100">
+            <div class="settings-card-header">
+                <div class="settings-card-icon" style="background:rgba(var(--nexus-primary-rgb),.1);">
+                    <i class="bi bi-building" style="color:var(--nexus-primary);"></i>
+                </div>
+                <div>
+                    <h6>Business Identity</h6>
+                    <p>Name, contact info and location</p>
+                </div>
+            </div>
+            <div class="form-page-body">
+                <div class="mb-3">
+                    <label class="form-label" for="{{ form.business_name.id_for_label }}">Business Name <span class="required-star">*</span></label>
+                    {{ form.business_name }}
+                    {% for e in form.business_name.errors %}<div class="field-error"><i class="bi bi-exclamation-circle"></i>{{ e }}</div>{% endfor %}
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="{{ form.business_tagline.id_for_label }}">Tagline / Slogan</label>
+                    {{ form.business_tagline }}
+                </div>
+
+                <!-- Logo upload with current preview -->
+                <div class="mb-3">
+                    <label class="form-label">Logo</label>
+                    {% if settings_obj.logo %}
+                    <div class="d-flex align-items-center gap-3 mb-2 p-3 rounded-3" style="background:var(--nexus-bg);border:1.5px dashed var(--nexus-border);">
+                        <img src="{{ settings_obj.logo.url }}" height="48" class="rounded" style="object-fit:contain;max-width:120px;">
+                        <div>
+                            <div class="small fw-semibold">Current logo</div>
+                            <div class="text-muted" style="font-size:11px;">Upload a new file below to replace it</div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {{ form.logo }}
+                    <div class="form-text">PNG or SVG recommended. Max 2 MB.</div>
+                </div>
+
+                <div class="row g-2 mb-3">
+                    <div class="col-sm-6">
+                        <label class="form-label" for="{{ form.contact_phone.id_for_label }}">Phone</label>
+                        {{ form.contact_phone }}
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="form-label" for="{{ form.contact_email.id_for_label }}">Email</label>
+                        {{ form.contact_email }}
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="{{ form.physical_address.id_for_label }}">Physical Address</label>
+                    {{ form.physical_address }}
+                </div>
+                <div class="row g-2">
+                    <div class="col-sm-6">
+                        <label class="form-label" for="{{ form.county.id_for_label }}">County</label>
+                        {{ form.county }}
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="form-label" for="{{ form.country.id_for_label }}">Country</label>
+                        {{ form.country }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ Theme & Branding ══ -->
+    <div class="col-xl-6">
+        <div class="form-page-card h-100">
+            <div class="settings-card-header">
+                <div class="settings-card-icon" style="background:rgba(139,92,246,.1);">
+                    <i class="bi bi-palette" style="color:#8b5cf6;"></i>
+                </div>
+                <div>
+                    <h6>Theme & Branding</h6>
+                    <p>Colours, currency and receipt settings</p>
+                </div>
+            </div>
+            <div class="form-page-body">
+
+                <!-- Colour pickers -->
+                <label class="form-label mb-2">Brand Colours</label>
+                <div class="row g-3 mb-1">
+                    <div class="col-4">
+                        <div class="colour-picker-card" onclick="this.querySelector('input').click()">
+                            {{ form.primary_color }}
+                            <label>Primary</label>
+                            <span class="colour-hex" id="hexPrimary">{{ settings_obj.primary_color }}</span>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="colour-picker-card" onclick="this.querySelector('input').click()">
+                            {{ form.secondary_color }}
+                            <label>Secondary</label>
+                            <span class="colour-hex" id="hexSecondary">{{ settings_obj.secondary_color }}</span>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="colour-picker-card" onclick="this.querySelector('input').click()">
+                            {{ form.accent_color }}
+                            <label>Accent</label>
+                            <span class="colour-hex" id="hexAccent">{{ settings_obj.accent_color }}</span>
+                        </div>
+                    </div>
+                </div>
+                <!-- Live preview bar -->
+                <div class="colour-preview-bar mb-4">
+                    <div id="prevPrimary"   style="background:{{ settings_obj.primary_color }};"></div>
+                    <div id="prevSecondary" style="background:{{ settings_obj.secondary_color }};"></div>
+                    <div id="prevAccent"    style="background:{{ settings_obj.accent_color }};"></div>
+                </div>
+
+                <!-- Currency -->
+                <div class="row g-2 mb-3">
+                    <div class="col-sm-6">
+                        <label class="form-label" for="{{ form.currency_code.id_for_label }}">Currency Code</label>
+                        {{ form.currency_code }}
+                        <div class="form-text">e.g. KES, USD</div>
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="form-label" for="{{ form.currency_symbol.id_for_label }}">Currency Symbol</label>
+                        {{ form.currency_symbol }}
+                        <div class="form-text">e.g. KSh, $</div>
+                    </div>
+                </div>
+
+                <!-- Receipt footer -->
+                <div class="mb-4">
+                    <label class="form-label" for="{{ form.receipt_footer_text.id_for_label }}">Receipt Footer Text</label>
+                    {{ form.receipt_footer_text }}
+                    <div class="form-text">Printed at the bottom of every receipt.</div>
+                </div>
+
+                <!-- Toggle rows -->
+                <div class="toggle-row">
+                    <div class="toggle-row-info">
+                        <strong>Show VAT on receipt</strong>
+                        <span>Display the VAT breakdown on printed receipts</span>
+                    </div>
+                    {{ form.show_vat_on_receipt }}
+                    <label class="visually-hidden" for="{{ form.show_vat_on_receipt.id_for_label }}">Show VAT on receipt</label>
+                </div>
+                <div class="toggle-row">
+                    <div class="toggle-row-info">
+                        <strong>Dark mode</strong>
+                        <span>Switch the interface to a dark colour scheme</span>
+                    </div>
+                    {{ form.dark_mode }}
+                    <label class="visually-hidden" for="{{ form.dark_mode.id_for_label }}">Dark mode</label>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ KRA & Tax ══ -->
+    <div class="col-xl-6">
+        <div class="form-page-card h-100">
+            <div class="settings-card-header">
+                <div class="settings-card-icon" style="background:rgba(34,197,94,.1);">
+                    <i class="bi bi-shield-check" style="color:#16a34a;"></i>
+                </div>
+                <div>
+                    <h6>KRA & Tax Compliance</h6>
+                    <p>Tax PIN, VAT rate and eTIMS integration</p>
+                </div>
+            </div>
+            <div class="form-page-body">
+                <div class="row g-3 mb-4">
+                    <div class="col-sm-7">
+                        <label class="form-label" for="{{ form.kra_pin.id_for_label }}">KRA PIN</label>
+                        {{ form.kra_pin }}
+                        {% for e in form.kra_pin.errors %}<div class="field-error"><i class="bi bi-exclamation-circle"></i>{{ e }}</div>{% endfor %}
+                    </div>
+                    <div class="col-sm-5">
+                        <label class="form-label" for="{{ form.vat_rate.id_for_label }}">VAT Rate (%)</label>
+                        {{ form.vat_rate }}
+                        <div class="form-text">Standard is 16%.</div>
+                    </div>
+                </div>
+
+                <!-- eTIMS feature box -->
+                <div class="feature-box" style="background:#f0fdf4;border:1.5px solid #bbf7d0;">
+                    <div class="feature-box-icon" style="background:#dcfce7;">
+                        <i class="bi bi-broadcast" style="color:#16a34a;"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <strong style="font-size:13px;color:#15803d;">eTIMS Integration</strong>
+                            {{ form.enable_etims }}
+                            <label class="visually-hidden" for="{{ form.enable_etims.id_for_label }}">Enable eTIMS</label>
+                        </div>
+                        <p class="mb-0 text-muted" style="font-size:12px;line-height:1.5;">
+                            When enabled, every sale is sent to KRA eTIMS for fiscalisation.
+                            A valid KRA PIN is required.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ Operational ══ -->
+    <div class="col-xl-6">
+        <div class="form-page-card h-100">
+            <div class="settings-card-header">
+                <div class="settings-card-icon" style="background:rgba(245,158,11,.1);">
+                    <i class="bi bi-sliders" style="color:#d97706;"></i>
+                </div>
+                <div>
+                    <h6>Operational Settings</h6>
+                    <p>Stock alerts and system behaviour</p>
+                </div>
+            </div>
+            <div class="form-page-body">
+                <div class="mb-3">
+                    <label class="form-label" for="{{ form.low_stock_threshold.id_for_label }}">Low Stock Alert Threshold</label>
+                    {{ form.low_stock_threshold }}
+                    <div class="form-text">Show a warning when a product's stock falls below this number.</div>
+                </div>
+
+                <!-- Info box for future settings -->
+                <div class="p-3 rounded-3 mt-3" style="background:var(--nexus-bg);border:1.5px dashed var(--nexus-border);">
+                    <div class="d-flex align-items-start gap-2 text-muted">
+                        <i class="bi bi-lightbulb mt-1" style="color:var(--nexus-accent);"></i>
+                        <p class="mb-0 small">
+                            Additional operational settings — such as auto-close of day reports,
+                            M-Pesa Paybill number, and receipt printer config — can be added here.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Sticky save bar -->
+<div class="settings-save-bar">
+    <button type="submit" class="btn btn-nexus px-5">
+        <i class="bi bi-check-lg me-2"></i>Save Settings
+    </button>
+    <span class="text-muted small" id="saveStatus"></span>
+</div>
+
+</form>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const colourMap = {
+    primary:   { input: document.getElementById('id_primary_color'),   preview: document.getElementById('prevPrimary'),   hex: document.getElementById('hexPrimary'),   css: '--nexus-primary'   },
+    secondary: { input: document.getElementById('id_secondary_color'), preview: document.getElementById('prevSecondary'), hex: document.getElementById('hexSecondary'), css: '--nexus-secondary' },
+    accent:    { input: document.getElementById('id_accent_color'),    preview: document.getElementById('prevAccent'),    hex: document.getElementById('hexAccent'),    css: '--nexus-accent'    },
+};
+
+Object.values(colourMap).forEach(({ input, preview, hex, css }) => {
+    if (!input) return;
+    input.addEventListener('input', () => {
+        const val = input.value;
+        if (preview) preview.style.background = val;
+        if (hex)     hex.textContent = val;
+        document.documentElement.style.setProperty(css, val);
+    });
+});
+</script>
+{% endblock %}
+
