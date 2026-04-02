@@ -6,7 +6,17 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-        <h4 class="fw-bold mb-0">Good {% now "G" as hour %}{% if hour < 12 %}Morning{% elif hour < 17 %}Afternoon{% else %}Evening{% endif %}, {{ user.first_name|default:user.username }}!</h4>
+        <h4 class="fw-bold mb-0">
+            Good 
+            {% if current_hour < 12 %}
+                Morning
+            {% elif current_hour < 17 %}
+                Afternoon
+            {% else %}
+                Evening
+            {% endif %}, 
+            {{ user.first_name|default:user.username }}!
+        </h4>
         <p class="text-muted small mb-0">{% now "l, d F Y" %} &bull; {{ sys.business_name }}</p>
     </div>
     <a href="/{{ tenant.slug }}/pos/terminal/" class="btn btn-nexus btn-lg px-4">

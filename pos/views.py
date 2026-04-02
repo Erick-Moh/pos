@@ -37,6 +37,7 @@ def dashboard(request, tenant_slug):
         'low_stock': low_stock,
         'currency': sys.currency_symbol,
         'tenant_slug': tenant_slug,
+        'current_hour': timezone.localtime().hour,
     })
 
 

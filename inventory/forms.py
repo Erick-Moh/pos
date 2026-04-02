@@ -1,6 +1,7 @@
 """inventory/forms.py"""
 
 from django import forms
+import bleach
 from .models import Category, Supplier, Product, StockMovement
 
 
@@ -15,6 +16,12 @@ class CategoryForm(forms.ModelForm):
             'icon': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'bi-box-seam'}),
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
+
+    def clean_description(self):
+        description = self.cleaned_data.get('description')
+        if description:
+            return bleach.clean(description, tags=[], strip=True)
+        return description
 
 
 class SupplierForm(forms.ModelForm):
@@ -31,6 +38,18 @@ class SupplierForm(forms.ModelForm):
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
+
+    def clean_address(self):
+        address = self.cleaned_data.get('address')
+        if address:
+            return bleach.clean(address, tags=[], strip=True)
+        return address
+
+    def clean_notes(self):
+        notes = self.cleaned_data.get('notes')
+        if notes:
+            return bleach.clean(notes, tags=[], strip=True)
+        return notes
 
 
 class ProductForm(forms.ModelForm):
@@ -61,6 +80,12 @@ class ProductForm(forms.ModelForm):
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'is_service': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
+        
+    def clean_description(self):
+        description = self.cleaned_data.get('description')
+        if description:
+            return bleach.clean(description, tags=[], strip=True)
+        return description
         
     def __init__(self, *args, **kwargs):
         tenant=kwargs.pop('tenant', None)
@@ -95,3 +120,17 @@ class StockAdjustmentForm(forms.ModelForm):
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
             'reference': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Invoice / PO number'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        tenant=kwargs.pop('tenant', None)
+        super().__init__(*args, **kwargs)
+        if tenant:
+            self.fields['product'].queryset = Product.objects.filter(tenant=tenant, is_active=True)
+        else:
+            self.fields['product'].queryset = Product.objects.none()
+
+    def clean_notes(self):
+        notes = self.cleaned_data.get('notes')
+        if notes:
+            return bleach.clean(notes, tags=[], strip=True)
+        return notes

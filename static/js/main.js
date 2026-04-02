@@ -275,30 +275,6 @@ function initSelect2() {
             allowClear: true,
         });
 
-        // Product search with AJAX (used in stock adjustment form)
-        const productSelect = $('#id_product');
-        if (productSelect.length) {
-            productSelect.select2({
-                theme: 'bootstrap-5',
-                width: '100%',
-                placeholder: 'Search product by name or SKU…',
-                minimumInputLength: 1,
-                ajax: {
-                    url: '/inventory/api/products/',
-                    dataType: 'json',
-                    delay: 300,
-                    data: function (params) { return { q: params.term }; },
-                    processResults: function (data) {
-                        return {
-                            results: data.products.map(function (p) {
-                                return { id: p.id, text: p.name + ' (' + (p.sku || 'no-sku') + ')' };
-                            })
-                        };
-                    },
-                    cache: true,
-                },
-            });
-        }
     });
 }
 

@@ -36,8 +36,8 @@ FEATURES = [
         'icon': 'bi-shield-check',
         'color': '#ef4444',
         'bg': 'rgba(239,68,68,.1)',
-        'title': 'KRA eTIMS Ready',
-        'desc': 'Built-in fields for fiscal signatures and QR codes. KRA PIN compliance.',
+        'title': 'KRA eTIMS',
+        'desc': 'KRA fiscal signatures, QR codes and PIN compliance ',
     },
     {
         'icon': 'bi-people',

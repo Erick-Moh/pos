@@ -285,3 +285,9 @@ class StockMovement(models.Model):
             self.quantity_after = self.product.quantity_in_stock
             self.product.save()
         super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        """Revert stock level changes if a movement is deleted."""
+        self.product.quantity_in_stock -= self.quantity
+        self.product.save()
+        super().delete(*args, **kwargs)

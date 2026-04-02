@@ -35,18 +35,22 @@
             background: rgba(255,255,255,.92);
             backdrop-filter: blur(12px);
             border-bottom: 1px solid var(--border);
-            padding: 14px 0;
+            padding: 6px 0;
         }
-        .nav-brand {
-            display: flex; align-items: center; gap: 10px;
-            font-weight: 800; font-size: 1.2rem; color: var(--text);
+       .nav-brand {
+            display: flex;
+            align-items: center;
+            font-weight: 800;
+            font-size: 1.2rem;
+            color: var(--text);
             text-decoration: none;
         }
-        .nav-brand .logo-icon {
-            width: 36px; height: 36px; border-radius: 10px;
-            background: var(--primary);
-            display: flex; align-items: center; justify-content: center;
-            color: white; font-size: 1.1rem;
+
+        .nav-brand .brand-logo {
+            height: 72px;
+            width: auto;
+            object-fit: contain;
+            background: none;
         }
 
         /* ── Hero ── */
@@ -244,6 +248,28 @@
         .stat-value { font-size: 2rem; font-weight: 800; line-height: 1; }
         .stat-label { font-size: 12px; opacity: .8; margin-top: 2px; }
 
+        /* ── eTIMS coming soon badge ── */
+        .etims-soon-badge {
+            display: inline-block;
+            background: #ef4444;
+            color: white;
+            font-size: 9px;
+            font-weight: 800;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            border-radius: 4px;
+            padding: 2px 6px;
+            margin-left: 6px;
+            vertical-align: middle;
+            position: relative;
+            top: -2px;
+            animation: blink-badge 2s ease-in-out infinite;
+        }
+        @keyframes blink-badge {
+            0%, 100% { opacity: 1; }
+            50%       { opacity: .6; }
+        }
+
         /* ── Responsive ── */
         @media (max-width: 767px) {
             .hero { padding: 100px 0 60px; }
@@ -257,9 +283,8 @@
 <!-- ─── Navbar ─────────────────────────────────────────── -->
 <nav class="landing-nav">
     <div class="container d-flex justify-content-between align-items-center">
-        <a href="/" class="nav-brand">
-            <div class="logo-icon"><i class="bi bi-rocket-takeoff-fill"></i></div>
-            GetCore
+        <a href="#" class="nav-brand">
+            <img src="{% static 'img/getcorelogo.png' %}" class="brand-logo" />
         </a>
         <div class="d-flex align-items-center gap-3">
             <a href="#features"    class="d-none d-md-inline text-muted text-decoration-none small fw-medium">Features</a>
@@ -289,7 +314,7 @@
                 <p class="hero-sub">
                     Boutiques, agrovets, liquor stores, hotels &amp; restaurants — manage
                     inventory, sales, finance, and staff with one powerful platform.
-                    M-Pesa ready. eTIMS compliant.
+                    M-Pesa ready. eTIMS compliant <span style="display:inline-flex;align-items:center;gap:4px;background:#fef2f2;color:#ef4444;border:1px solid #fecaca;border-radius:30px;padding:1px 8px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;vertical-align:middle;">coming soon</span>.
                 </p>
                 <div class="hero-cta-group">
                     <a href="#get-access" class="btn-hero-primary">
@@ -359,7 +384,7 @@
                 <div class="stat-label">Payment Ready</div>
             </div>
             <div class="col-6 col-md-3 stat-item">
-                <div class="stat-value">eTIMS</div>
+                <div class="stat-value">eTIMS<span class="etims-soon-badge">Soon</span></div>
                 <div class="stat-label">KRA Compliant</div>
             </div>
             <div class="col-6 col-md-3 stat-item">
@@ -383,6 +408,20 @@
         <div class="row g-4">
             {% for feat in features %}
             <div class="col-md-6 col-lg-4">
+                {% if 'etims' in feat.title|lower or 'kra' in feat.title|lower %}
+                <div class="feature-card" style="border-color:#fecaca;position:relative;overflow:hidden;">
+                    <!-- Coming Soon ribbon -->
+                    <div style="position:absolute;top:14px;right:-28px;background:#ef4444;color:white;font-size:9px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:4px 36px;transform:rotate(40deg);box-shadow:0 2px 6px rgba(239,68,68,.4);">SOON</div>
+                    <div class="feature-icon" style="background:{{ feat.bg }};">
+                        <i class="bi {{ feat.icon }}" style="color:{{ feat.color }};"></i>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+                        <h5 style="margin:0;">{{ feat.title }}</h5>
+                        <span style="display:inline-block;background:#fef2f2;color:#ef4444;border:1px solid #fecaca;border-radius:30px;padding:2px 9px;font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;white-space:nowrap;">Coming Soon</span>
+                    </div>
+                    <p>{{ feat.desc }}</p>
+                </div>
+                {% else %}
                 <div class="feature-card">
                     <div class="feature-icon" style="background:{{ feat.bg }};">
                         <i class="bi {{ feat.icon }}" style="color:{{ feat.color }};"></i>
@@ -390,6 +429,7 @@
                     <h5>{{ feat.title }}</h5>
                     <p>{{ feat.desc }}</p>
                 </div>
+                {% endif %}
             </div>
             {% endfor %}
         </div>
