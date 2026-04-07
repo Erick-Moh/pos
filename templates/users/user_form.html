@@ -174,11 +174,29 @@
                             Leave blank to keep the existing password.
                         </div>
                         {% endif %}
-
-                        <div class="mb-3">
-                            <label class="form-label">{% if action == 'Edit' %}New {% endif %}Password{% if action == 'Create' %} <span class="required-star">*</span>{% endif %}</label>
-                            {% if action == 'Edit' %}{{ form.new_password }}{% for e in form.new_password.errors %}<div class="field-error"><i class="bi bi-exclamation-circle"></i>{{ e }}</div>{% endfor %}
-                            {% else %}{{ form.password }}{% for e in form.password.errors %}<div class="field-error"><i class="bi bi-exclamation-circle"></i>{{ e }}</div>{% endfor %}{% endif %}
+                        <div class="">
+                            <label class="form-label">
+                                {% if action == 'Edit' %}
+                                    New Password
+                                {% else %}
+                                    Password <span class="required-star">*</span>
+                                {% endif %}
+                            </label>
+                            {% if action == 'Edit' %}
+                                {{ form.new_password }}
+                                {% for e in form.new_password.errors %}
+                                    <div class="field-error">
+                                        <i class="bi bi-exclamation-circle"></i>{{ e }}
+                                    </div>
+                                {% endfor %}
+                            {% else %}
+                                {{ form.password }}
+                                {% for e in form.password.errors %}
+                                    <div class="field-error">
+                                        <i class="bi bi-exclamation-circle"></i>{{ e }}
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
                             <div class="mt-2 d-none" id="strengthWrap">
                                 <div class="d-flex align-items-center gap-2">
                                     <div style="flex:1;height:5px;background:#e2e8f0;border-radius:3px;overflow:hidden;">
@@ -188,10 +206,26 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">Confirm {% if action == 'Edit' %}New {% endif %}Password</label>
-                            {% if action == 'Edit' %}{{ form.confirm_new_password }}{% for e in form.confirm_new_password.errors %}<div class="field-error"><i class="bi bi-exclamation-circle"></i>{{ e }}</div>{% endfor %}
-                            {% else %}{{ form.confirm_password }}{% for e in form.confirm_password.errors %}<div class="field-error"><i class="bi bi-exclamation-circle"></i>{{ e }}</div>{% endfor %}{% endif %}
+                        <div class="">
+                            <label class="form-label">
+                                Confirm {% if action == 'Edit' %}New {% endif %}Password
+                                {% if action == 'Create' %}<span class="required-star">*</span>{% endif %}
+                            </label>
+                            {% if action == 'Edit' %}
+                                {{ form.confirm_new_password }}
+                                {% for e in form.confirm_new_password.errors %}
+                                    <div class="field-error">
+                                        <i class="bi bi-exclamation-circle"></i>{{ e }}
+                                    </div>
+                                {% endfor %}
+                            {% else %}
+                                {{ form.confirm_password }}
+                                {% for e in form.confirm_password.errors %}
+                                    <div class="field-error">
+                                        <i class="bi bi-exclamation-circle"></i>{{ e }}
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
                             <div class="form-text" id="pwMatchHint"></div>
                         </div>
                         <div class="p-3 rounded-3 mb-4" style="background:var(--nexus-bg);border:1.5px solid var(--nexus-border);font-size:12px;">
@@ -230,6 +264,7 @@
 
 {% block extra_scripts %}
 <script>
+
 const PIN_ROLES = ['cashier', 'waiter'];
 const PWD_ROLES = ['admin', 'manager'];
 const roleSelect = document.getElementById('id_role');
@@ -237,6 +272,8 @@ const pinSection = document.getElementById('pinSection');
 const pwdSection = document.getElementById('passwordSection');
 const bannerPin  = document.getElementById('bannerPin');
 const bannerPwd  = document.getElementById('bannerPwd');
+
+
 
 function applyRole() {
     const role  = roleSelect.value;
@@ -250,7 +287,9 @@ function applyRole() {
     if (isPin) { bannerPin.style.background='#eff6ff'; bannerPin.style.border='1px solid #bfdbfe'; }
     if (isPwd) { bannerPwd.style.background='#f0fdf4'; bannerPwd.style.border='1px solid #bbf7d0'; }
 }
-roleSelect.addEventListener('change', applyRole);
+$(roleSelect).on('change', function() {
+    applyRole();
+});
 applyRole();
 
 /* ── PIN pad — exactly 4 digits ── */

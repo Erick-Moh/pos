@@ -39,7 +39,7 @@
     </div>
     {% if user.is_admin_role %}
     <div class="d-flex gap-2">
-        <a href="/{{ tenant.slug }}/inventory/adjust/?product={{ product.pk }}" class="btn btn-outline-secondary btn-sm px-3">
+        <a href="/{{ tenant.slug }}/inventory/adjust/?next_url=/{{ tenant.slug }}/inventory/{{ product.pk }}/&product_id={{ product.pk }}" class="btn btn-outline-secondary btn-sm px-3">
             <i class="bi bi-arrow-left-right me-1"></i>Adjust Stock
         </a>
         <a href="/{{ tenant.slug }}/inventory/{{ product.pk }}/edit/" class="btn btn-nexus btn-sm px-3">
@@ -141,7 +141,7 @@
             <div class="card-header bg-transparent border-0 pt-3 pb-2 px-3 d-flex justify-content-between align-items-center">
                 <h6 class="fw-bold mb-0">Recent Stock Movements</h6>
                 {% if user.is_admin_role %}
-                <a href="/{{ tenant.slug }}/inventory/adjust/" class="btn btn-sm btn-outline-primary">
+                <a href="/{{ tenant.slug }}/inventory/adjust/?next_url=/{{ tenant.slug }}/inventory/{{ product.pk }}/&product_id={{ product.pk }}" class="btn btn-sm btn-outline-primary">
                     <i class="bi bi-plus me-1"></i>Record Movement
                 </a>
                 {% endif %}
@@ -156,6 +156,7 @@
                             <th class="py-2 text-center">Before</th>
                             <th class="py-2 text-center">After</th>
                             <th class="py-2 pe-3">Ref</th>
+                            <th class="py-2 pe-3">Action</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -178,6 +179,15 @@
                             <td class="text-center text-muted">{{ m.quantity_before|intcomma }}</td>
                             <td class="text-center fw-medium">{{ m.quantity_after|intcomma }}</td>
                             <td class="pe-3 text-muted small">{{ m.reference|default:"—" }}</td>
+                            <td class="pe-3">
+                                {% if user.is_admin_role %}
+                                <a href="/{{ tenant.slug }}/inventory/stock-movement/{{ m.pk }}/delete/" class="text-danger" title="Delete" onclick="return confirm('Are you sure you want to delete this movement? This will adjust stock levels accordingly.')">
+                                    <i class="bi bi-trash"></i>
+                                </a>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
                         </tr>
                         {% empty %}
                         <tr>

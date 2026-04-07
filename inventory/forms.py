@@ -123,11 +123,16 @@ class StockAdjustmentForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         tenant=kwargs.pop('tenant', None)
+        initial=kwargs.pop('initial', None)
         super().__init__(*args, **kwargs)
         if tenant:
             self.fields['product'].queryset = Product.objects.filter(tenant=tenant, is_active=True)
         else:
             self.fields['product'].queryset = Product.objects.none()
+        if initial:
+            for field, value in initial.items():
+                if field in self.fields:
+                    self.fields[field].initial = value
 
     def clean_notes(self):
         notes = self.cleaned_data.get('notes')

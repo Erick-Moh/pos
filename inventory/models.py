@@ -236,7 +236,6 @@ class StockMovement(models.Model):
     MOVEMENT_TYPES = [
         ('purchase', 'Purchase / Stock In'),
         ('sale', 'Sale / Stock Out'),
-        ('adjustment', 'Manual Adjustment'),
         ('return', 'Customer Return'),
         ('damage', 'Damaged / Write-off'),
         ('transfer', 'Stock Transfer'),
@@ -277,17 +276,12 @@ class StockMovement(models.Model):
     def __str__(self):
         return f'{self.movement_type.upper()} | {self.product.name} | Qty: {self.quantity}'
 
-    def save(self, *args, **kwargs):
-        """Auto-update product stock level when a movement is saved."""
-        if not self.pk:  # Only on creation
-            self.quantity_before = self.product.quantity_in_stock
-            self.product.quantity_in_stock += self.quantity
-            self.quantity_after = self.product.quantity_in_stock
-            self.product.save()
-        super().save(*args, **kwargs)
-
     def delete(self, *args, **kwargs):
         """Revert stock level changes if a movement is deleted."""
-        self.product.quantity_in_stock -= self.quantity
-        self.product.save()
+        if not self.product.is_service:
+            if self.movement_type in ['sale', 'damage', 'transfer']:
+                self.product.quantity_in_stock += self.quantity
+            else:
+                self.product.quantity_in_stock -= self.quantity
+            self.product.save()
         super().delete(*args, **kwargs)

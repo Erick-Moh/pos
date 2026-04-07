@@ -110,10 +110,27 @@ def product_delete(request, tenant_slug, pk):
 @admin_required
 def stock_adjustment(request, tenant_slug):
     tenant = get_tenant_or_404(request)
+    next_url = request.GET.get('next_url', None)
+    product_id = request.GET.get('product_id', None)
+    print(product_id)
+    print(next_url)
+    if product_id:
+        try:
+            product = Product.objects.get(pk=product_id, tenant=tenant)
+            initial_data = {
+                'product': product
+            }
+            print(f"Initial data for stock adjustment: {initial_data}")
+        except Product.DoesNotExist:
+            messages.error(request, 'Selected product does not exist.')
+            return redirect('tenant:inventory:stock_adjustment', tenant_slug=tenant_slug)
+    else:
+        initial_data = {}
     if request.method == 'POST':
         form = StockAdjustmentForm(request.POST, tenant=tenant)
+        movement = form.save(commit=False)
         if form.is_valid():
-            stock_reduction = form.cleaned_data['movement_type'] in ['sale', 'damage', 'transfer', 'return']
+            stock_reduction = form.cleaned_data['movement_type'] in ['sale', 'damage', 'transfer']
             product = form.cleaned_data['product']
             quantity = form.cleaned_data['quantity']
             if quantity == 0:
@@ -122,17 +139,27 @@ def stock_adjustment(request, tenant_slug):
             if product.is_service:
                 messages.error(request, 'Cannot adjust stock for a service item.')
                 return redirect('tenant:inventory:stock_adjustment', tenant_slug=tenant_slug)
-            if stock_reduction and product.quantity_in_stock < quantity:
-                messages.error(request, f'Insufficient stock for "{product.name}". Current stock: {product.quantity_in_stock}.')
-                return redirect('tenant:inventory:stock_adjustment', tenant_slug=tenant_slug)
-            movement = form.save(commit=False)
+            if stock_reduction:
+                if product.quantity_in_stock < quantity:
+                    messages.error(request, f'Insufficient stock for "{product.name}". Current stock: {product.quantity_in_stock}.')
+                    return redirect('tenant:inventory:stock_adjustment', tenant_slug=tenant_slug)
+                else:
+                    movement.quantity_before = product.quantity_in_stock
+                    product.quantity_in_stock -= quantity
+            else:
+                movement.quantity_before = product.quantity_in_stock
+                product.quantity_in_stock += quantity
+            product.save()
+            movement.quantity_after = product.quantity_in_stock
             movement.tenant = tenant
             movement.performed_by = request.user
             movement.save()
             messages.success(request, f'Stock adjustment recorded for "{movement.product.name}".')
+            if next_url:
+                return redirect(next_url)
             return redirect('tenant:inventory:product_list', tenant_slug=tenant_slug)
     else:
-        form = StockAdjustmentForm(tenant=tenant)
+        form = StockAdjustmentForm(tenant=tenant, initial=initial_data)
     return render(request, 'inventory/stock_adjustment.html', {
         'form': form, 'tenant_slug': tenant_slug,
     })
@@ -142,9 +169,16 @@ def stock_adjustment(request, tenant_slug):
 def stock_adjustment_delete(request, tenant_slug, pk):
     tenant = get_tenant_or_404(request)
     movement = get_object_or_404(StockMovement, pk=pk, tenant=tenant)
+    if movement.product.is_service:
+        messages.error(request, 'Cannot delete stock movement for a service item.')
+        return redirect('tenant:inventory:product_detail', tenant_slug=tenant_slug, pk=movement.product.pk)
+    if movement.movement_type in ['purchase', 'return']:
+        if movement.product.quantity_in_stock < movement.quantity:
+            messages.error(request, f'Cannot delete this movement as it would result in negative stock for "{movement.product.name}". Current stock: {movement.product.quantity_in_stock}.')
+            return redirect('tenant:inventory:product_detail', tenant_slug=tenant_slug, pk=movement.product.pk)
     movement.delete()
     messages.success(request, f'Stock adjustment deleted for "{movement.product.name}".')
-    return redirect('tenant:inventory:stock_adjustment', tenant_slug=tenant_slug)
+    return redirect('tenant:inventory:product_detail', tenant_slug=tenant_slug, pk=movement.product.pk)
     
 @login_required_tenant
 @admin_required
