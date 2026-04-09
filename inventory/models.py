@@ -176,7 +176,7 @@ class Product(models.Model):
     )
 
     # ── VAT / Tax ──────────────────────────────────────────────────────────
-    is_vat_exempt = models.BooleanField(default=False)
+    is_vat_exempt = models.BooleanField(default=True)
 
     # ── Status ─────────────────────────────────────────────────────────────
     is_active = models.BooleanField(default=True)
@@ -239,6 +239,7 @@ class StockMovement(models.Model):
         ('return', 'Customer Return'),
         ('damage', 'Damaged / Write-off'),
         ('transfer', 'Stock Transfer'),
+        ('sale_void', 'Sale Reversal'),
     ]
 
     product = models.ForeignKey(

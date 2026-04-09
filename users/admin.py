@@ -14,7 +14,7 @@ class GetCoreUserAdmin(UserAdmin):
 
     fieldsets = UserAdmin.fieldsets + (
         ('GetCore Fields', {
-            'fields': ('role', 'hashed_pin', 'phone_number', 'profile_picture', 'is_active_shift')
+            'fields': ('role', 'hashed_pin', 'phone_number', 'profile_picture', 'is_active_shift', 'must_change_credentials', 'tenant'),
         }),
     )
 

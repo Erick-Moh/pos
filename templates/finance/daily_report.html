@@ -92,8 +92,60 @@
     </div>
 </div>
 
+<!-- Till Reconciliation Summary -->
+{% if summary.is_closed %}
+<div class="card border-0 shadow-sm border-success mb-4">
+    <div class="card-header bg-success bg-opacity-10 border-0 pt-3">
+        <h6 class="fw-semibold mb-0"><i class="bi bi-check-circle me-2"></i>Till Reconciliation — Closed</h6>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <div class="ps-3 border-start border-success border-3">
+                    <div class="text-muted small">Expected Cash</div>
+                    <div class="h5 fw-bold">{{ currency }} {{ summary.expected_cash|floatformat:2|intcomma }}</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="ps-3 border-start border-info border-3">
+                    <div class="text-muted small">Actual Cash</div>
+                    <div class="h5 fw-bold">{{ currency }} {{ summary.actual_cash|floatformat:2|intcomma }}</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="ps-3 border-start {% if summary.cash_variance >= 0 %}border-success{% else %}border-danger{% endif %} border-3">
+                    <div class="text-muted small">Variance</div>
+                    <div class="h5 fw-bold {% if summary.cash_variance >= 0 %}text-success{% else %}text-danger{% endif %}">
+                        {{ currency }} {{ summary.cash_variance|floatformat:2|intcomma }}
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="ps-3 border-start border-secondary border-3">
+                    <div class="text-muted small">Variance %</div>
+                    <div class="h5 fw-bold">
+                        {% if summary.expected_cash > 0 %}
+                            {% widthratio summary.cash_variance summary.expected_cash 100 as variance_percent %}
+                            <span class="{% if variance_percent|floatformat:1|add:0 >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                {{ variance_percent|floatformat:1 }}%
+                            </span>
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% if summary.notes %}
+        <div class="mt-3 p-3 bg-light rounded">
+            <div class="text-muted small fw-medium mb-2"><i class="bi bi-chat-left-text me-2"></i>Closing Notes</div>
+            <p class="mb-0">{{ summary.notes }}</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% else %}
 <!-- Till Reconciliation (close the day) -->
-{% if not summary.is_closed %}
 <div class="card border-0 shadow-sm border-warning mb-4">
     <div class="card-header bg-warning bg-opacity-10 border-0 pt-3">
         <h6 class="fw-semibold mb-0"><i class="bi bi-safe me-2"></i>Till Reconciliation — Close Day</h6>
@@ -114,7 +166,6 @@
                 </div>
                 <div class="col-md-2 d-flex align-items-end">
                     <button type="submit" class="btn btn-nexus w-100"
-                            
                             onclick="return confirm('Close the books for {{ target_date }}?')">
                         <i class="bi bi-lock me-1"></i>Close Day
                     </button>

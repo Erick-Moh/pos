@@ -101,7 +101,7 @@ def daily_report(request, tenant_slug):
         summary.closed_by = request.user
         summary.save()
         messages.success(request, f'Day {target_date} closed.')
-        return redirect('finance:daily_report', tenant_slug=tenant_slug)
+        return redirect('tenant:finance:daily_report', tenant_slug=tenant_slug)
 
     summary = _build_daily_summary(tenant, target_date)
     sales = Sale.objects.filter(tenant=tenant, created_at__date=target_date, status='completed').select_related('served_by', 'customer')

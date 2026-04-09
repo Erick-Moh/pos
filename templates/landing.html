@@ -478,7 +478,7 @@
         <div class="mb-5">
             <p class="mb-3" style="opacity:.85;font-size:14px;">Already have an access key? Enter it below:</p>
             <form class="key-form" id="keyForm" onsubmit="goToKey(event)">
-                <input type="text" id="keyInput" placeholder="e.g. kamau-agrovet" autocomplete="off"
+                <input type="text" id="keyInput" placeholder="e.g. kamau-agrovet" autocomplete="on"
                        pattern="[a-z0-9\-]+" title="Lowercase letters, numbers, and hyphens only">
                 <button type="submit">
                     <i class="bi bi-arrow-right-circle-fill me-1"></i>Go to my workspace
@@ -490,7 +490,7 @@
         </div>
 
         <div id="contact" class="row g-4 justify-content-center">
-            <div class="col-md-4">
+            <div class="col-md-6">
                 <div class="contact-card">
                     <div style="font-size:1.4rem;margin-bottom:10px;"><i class="bi bi-whatsapp"></i></div>
                     <div class="fw-bold mb-1">WhatsApp</div>
@@ -498,20 +498,12 @@
                     <p class="mt-1 mb-0" style="font-size:12px;opacity:.75;">Available Mon–Sat, 8am–6pm EAT</p>
                 </div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-6">
                 <div class="contact-card">
                     <div style="font-size:1.4rem;margin-bottom:10px;"><i class="bi bi-envelope-fill"></i></div>
                     <div class="fw-bold mb-1">Email Us</div>
                     <a href="mailto:hello@getcore.co.ke">hello@getcore.co.ke</a>
                     <p class="mt-1 mb-0" style="font-size:12px;opacity:.75;">We respond within 24 hours</p>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="contact-card">
-                    <div style="font-size:1.4rem;margin-bottom:10px;"><i class="bi bi-person-lines-fill"></i></div>
-                    <div class="fw-bold mb-1">Platform Admin</div>
-                    <a href="/platform/">Platform Portal</a>
-                    <p class="mt-1 mb-0" style="font-size:12px;opacity:.75;">For system administrators only</p>
                 </div>
             </div>
         </div>
@@ -541,10 +533,16 @@
 <script>
 function goToKey(e) {
     e.preventDefault();
-    const key = document.getElementById('keyInput').value.trim().toLowerCase();
+    const input = document.getElementById('keyInput');
     const err = document.getElementById('keyError');
-    if (!key) { err.style.display = 'block'; return; }
+    let key = input.value.trim().toLowerCase().slice(0, 50);
+    const validPattern = /^[a-z0-9_-]+$/;
+    if (!key || !validPattern.test(key)) {
+        err.style.display = 'block';
+        return;
+    }
     err.style.display = 'none';
+    key = encodeURIComponent(key);
     window.location.href = '/' + key + '/pos/';
 }
 // Smooth scroll for anchor links

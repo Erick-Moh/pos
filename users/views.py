@@ -12,13 +12,15 @@ from .forms import StaffPinLoginForm, AdminPasswordLoginForm, UserCreateForm, Us
 from .change_credentials_form import ChangeCredentialsForm
 from .decorators import admin_required
 from django.db.models import Q
+from tenants.models import Tenant
+from django.http import Http404
 
 User = get_user_model()
 
 
 def login_view(request, tenant_slug):
     if request.user.is_authenticated:
-        return redirect('tenant:pos:dashboard', tenant_slug=tenant_slug)
+        return redirect('tenant:pos:dashboard', tenant_slug=request.user.tenant.slug)
 
     staff_form = StaffPinLoginForm()
     admin_form = AdminPasswordLoginForm()
@@ -28,14 +30,30 @@ def login_view(request, tenant_slug):
         login_type = request.POST.get('login_type', 'staff')
 
         if login_type == 'staff':
-            active_tab = 'staff'
             staff_form = StaffPinLoginForm(request.POST)
             if staff_form.is_valid():
                 user = authenticate(
                     request,
-                    username=staff_form.cleaned_data['username'],
+                    pin=staff_form.cleaned_data['pin'],
+                    username=f'{tenant_slug}_{staff_form.cleaned_data["username"].strip().upper()}',
                 )
                 if user:
+                    try:
+                        tenant = get_object_or_404(Tenant, slug=user.tenant.slug, is_active=True)
+                        if tenant.slug != tenant_slug:
+                            messages.error(request, 'Invalid username or PIN.')
+                            return render(request, 'users/login.html', {
+                                'staff_form': staff_form,
+                                'admin_form': admin_form,
+                                'active_tab': active_tab,
+                            })
+                    except Http404:
+                        messages.error(request, 'Invalid username or PIN.')
+                        return render(request, 'users/login.html', {
+                                'staff_form': staff_form,
+                                'admin_form': admin_form,
+                                'active_tab': active_tab,
+                            })
                     login(request, user)
                     messages.success(request, f'Welcome back, {user.first_name or user.username}!')
                     return redirect('tenant:pos:dashboard', tenant_slug=tenant_slug)
@@ -47,20 +65,35 @@ def login_view(request, tenant_slug):
             if admin_form.is_valid():
                 user = authenticate(
                     request,
-                    username=admin_form.cleaned_data['username'],
+                    username=f'{tenant_slug}_{admin_form.cleaned_data["username"].strip().upper()}',
                     password=admin_form.cleaned_data['password'],
                 )
                 if user and user.is_admin_role:
+                    try:
+                        tenant = get_object_or_404(Tenant, slug=user.tenant.slug, is_active=True)
+                        if tenant.slug != tenant_slug:
+                            messages.error(request, 'Invalid credentials or insufficient privileges.')
+                            return render(request, 'users/login.html', {
+                                'staff_form': staff_form,
+                                'admin_form': admin_form,
+                                'active_tab': active_tab,
+                            })
+                    except Http404:
+                        messages.error(request, 'Invalid username or password.')
+                        return render(request, 'users/login.html', {
+                                'staff_form': staff_form,
+                                'admin_form': admin_form,
+                                'active_tab': active_tab,
+                            })
                     login(request, user)
                     messages.success(request, f'Welcome, {user.get_full_name() or user.username}!')
-                    return redirect(request.GET.get('next') or 'tenant:pos:dashboard', tenant_slug=tenant_slug)
+                    return redirect('tenant:pos:dashboard', tenant_slug=tenant_slug)
                 messages.error(request, 'Invalid credentials or insufficient privileges.')
 
     return render(request, 'users/login.html', {
         'staff_form': staff_form,
         'admin_form': admin_form,
         'active_tab': active_tab,
-        'tenant_slug': tenant_slug,
     })
 
 
@@ -116,9 +149,11 @@ def user_create(request, tenant_slug):
         form = UserCreateForm(request.POST, request.FILES)
         if form.is_valid():
             user = form.save(commit=False)
+            raw_username = form.cleaned_data['username'].strip().upper()
             user.tenant = tenant
+            user.username = f'{tenant.slug}_{raw_username}'
             user.save()
-            messages.success(request, f'User "{user.username}" created successfully.')
+            messages.success(request, f'User "{raw_username}" created successfully.')
             return redirect('tenant:users:user_list', tenant_slug=tenant_slug)
     else:
         form = UserCreateForm()
@@ -135,11 +170,16 @@ def user_edit(request, tenant_slug, pk):
     if request.method == 'POST':
         form = UserEditForm(request.POST, request.FILES, instance=user_obj)
         if form.is_valid():
-            form.save()
-            messages.success(request, f'User "{user_obj.username}" updated.')
+            if form.has_changed():
+                if 'username' in form.changed_data:
+                    raw_username = form.cleaned_data['username'].strip().upper()
+                    user_obj.username = f'{tenant.slug}_{raw_username}'
+                form.save()
+                messages.success(request, f'User "{user_obj.username.strip(f"{tenant.slug}_")}" updated.')
             return redirect('tenant:users:user_list', tenant_slug=tenant_slug)
     else:
-        form = UserEditForm(instance=user_obj)
+        initial_username = user_obj.username.strip(f'{tenant.slug}_')
+        form = UserEditForm(instance=user_obj, initial={'username': initial_username})
     return render(request, 'users/user_form.html', {
         'form': form, 'action': 'Edit', 'obj': user_obj, 'tenant_slug': tenant_slug,
     })

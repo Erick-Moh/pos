@@ -90,6 +90,8 @@ class ChangeCredentialsForm(forms.Form):
                 self.add_error('new_pin', 'PIN must be exactly 4 digits.')
             elif new_pin != confirm_pin:
                 self.add_error('confirm_pin', 'PINs do not match.')
+            elif self.user.check_pin(new_pin):
+                self.add_error('new_pin', 'New PIN cannot be the same as the old PIN.')
 
         elif role in ('admin', 'manager'):
             if not new_password:
@@ -102,6 +104,8 @@ class ChangeCredentialsForm(forms.Form):
                 self.add_error('new_password', 'Password must contain at least one number.')
             elif new_password != confirm_pwd:
                 self.add_error('confirm_password', 'Passwords do not match.')
+            elif self.user.check_password(new_password):
+                self.add_error('new_password', 'New password cannot be the same as the old password.')
 
         return cleaned_data
 

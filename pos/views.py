@@ -10,13 +10,10 @@ from django.views.decorators.http import require_POST
 from django.db import transaction
 from django.utils import timezone
 from django.db.models import F
-
 from inventory.models import Product, StockMovement
 from settings_app.models import SystemSetting
 from tenants.mixins import get_tenant_or_404
-from users.decorators import admin_required
 from .models import Sale, SaleItem, Customer
-from .services.etims import fiscalise_sale_if_enabled
 
 
 @login_required_tenant
@@ -127,7 +124,11 @@ def process_sale(request, tenant_slug):
                     unit_cost=product.buying_price,
                     reference=sale.invoice_number,
                     performed_by=request.user,
+                    quantity_before=product.quantity_in_stock,
+                    quantity_after=product.quantity_in_stock - qty,
                 )
+                product.quantity_in_stock = F('quantity_in_stock') - qty
+                product.save()
 
         if discount_percent > 0:
             sale.discount_amount = subtotal * (discount_percent / 100)
@@ -145,7 +146,7 @@ def process_sale(request, tenant_slug):
         sale.status = 'completed'
         sale.save()
 
-    fiscalise_sale_if_enabled(sale)
+    # fiscalise_sale_if_enabled(sale)
     return JsonResponse({
         'success': True,
         'invoice_number': sale.invoice_number,
@@ -204,13 +205,24 @@ def sale_detail(request, tenant_slug, pk):
 def void_sale(request, tenant_slug, pk):
     if not request.user.is_admin_role:
         messages.error(request, 'Only administrators can void sales.')
-        return redirect('pos:sale_list', tenant_slug=tenant_slug)
+        return redirect('tenant:pos:sale_list', tenant_slug=tenant_slug)
     tenant = get_tenant_or_404(request)
-    sale = get_object_or_404(Sale, pk=pk, tenant=tenant, status='completed')
+    sale = Sale.objects.prefetch_related('items').get(pk=pk, tenant=tenant, status='completed')
     if request.method == 'POST':
+        for item in sale.items.all():
+            if not item.product.is_service:
+                StockMovement.objects.create(
+                    tenant=tenant, product=item.product,
+                    movement_type='sale_void', quantity=item.quantity,
+                    performed_by=request.user,
+                    quantity_before=item.product.quantity_in_stock,
+                    quantity_after=item.product.quantity_in_stock + item.quantity,
+                )
+                item.product.quantity_in_stock = F('quantity_in_stock') + item.quantity
+                item.product.save()
         sale.status = 'voided'
         sale.void_reason = request.POST.get('void_reason', '')
         sale.save()
         messages.success(request, f'Sale {sale.invoice_number} voided.')
-        return redirect('pos:sale_list', tenant_slug=tenant_slug)
+        return redirect('tenant:pos:sale_list', tenant_slug=tenant_slug)
     return render(request, 'pos/void_confirm.html', {'sale': sale, 'tenant_slug': tenant_slug})

@@ -29,7 +29,7 @@ def product_list(request, tenant_slug):
     if query:
         products = products.filter(Q(name__icontains=query) | Q(sku__icontains=query) | Q(barcode__icontains=query))
     if category_id:
-        products = products.filter(category_id=category_id)
+        products = products.filter(Q(category_id=category_id) | Q(category__parent_id=category_id))
     if low_stock_only:
         products = products.filter(quantity_in_stock__lte=F('reorder_level'), is_service=False)
 
@@ -112,15 +112,12 @@ def stock_adjustment(request, tenant_slug):
     tenant = get_tenant_or_404(request)
     next_url = request.GET.get('next_url', None)
     product_id = request.GET.get('product_id', None)
-    print(product_id)
-    print(next_url)
     if product_id:
         try:
             product = Product.objects.get(pk=product_id, tenant=tenant)
             initial_data = {
                 'product': product
             }
-            print(f"Initial data for stock adjustment: {initial_data}")
         except Product.DoesNotExist:
             messages.error(request, 'Selected product does not exist.')
             return redirect('tenant:inventory:stock_adjustment', tenant_slug=tenant_slug)
@@ -128,8 +125,8 @@ def stock_adjustment(request, tenant_slug):
         initial_data = {}
     if request.method == 'POST':
         form = StockAdjustmentForm(request.POST, tenant=tenant)
-        movement = form.save(commit=False)
         if form.is_valid():
+            movement = form.save(commit=False)
             stock_reduction = form.cleaned_data['movement_type'] in ['sale', 'damage', 'transfer']
             product = form.cleaned_data['product']
             quantity = form.cleaned_data['quantity']

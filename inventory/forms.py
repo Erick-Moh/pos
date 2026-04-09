@@ -5,6 +5,11 @@ import bleach
 from .models import Category, Supplier, Product, StockMovement
 
 
+def _validate_positive(value):
+    if value and value < 1:
+        raise forms.ValidationError('Value must be positive and greater than zero.')
+
+
 class CategoryForm(forms.ModelForm):
     class Meta:
         model = Category
@@ -70,12 +75,12 @@ class ProductForm(forms.ModelForm):
             'category': forms.Select(attrs={'class': 'form-select select2', 'data-placeholder': 'Select category...'}),
             'supplier': forms.Select(attrs={'class': 'form-select select2', 'data-placeholder': 'Select supplier...'}),
             'unit': forms.Select(attrs={'class': 'form-select select2'}),
-            'buying_price': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
-            'selling_price': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
-            'wholesale_price': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
-            'quantity_in_stock': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
-            'reorder_level': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
-            'max_stock_level': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'buying_price': forms.NumberInput(attrs={'class': 'form-control', 'step': '1'}),
+            'selling_price': forms.NumberInput(attrs={'class': 'form-control', 'step': '1'}),
+            'wholesale_price': forms.NumberInput(attrs={'class': 'form-control', 'step': '1'}),
+            'quantity_in_stock': forms.NumberInput(attrs={'class': 'form-control', 'step': '1'}),
+            'reorder_level': forms.NumberInput(attrs={'class': 'form-control', 'step': '1'}),
+            'max_stock_level': forms.NumberInput(attrs={'class': 'form-control', 'step': '1'}),
             'is_vat_exempt': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'is_service': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
@@ -90,6 +95,12 @@ class ProductForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         tenant=kwargs.pop('tenant', None)
         super().__init__(*args, **kwargs)
+        self.fields['buying_price'].validators.append(_validate_positive)
+        self.fields['selling_price'].validators.append(_validate_positive)
+        self.fields['wholesale_price'].validators.append(_validate_positive)
+        self.fields['quantity_in_stock'].validators.append(_validate_positive)
+        self.fields['reorder_level'].validators.append(_validate_positive)
+        self.fields['max_stock_level'].validators.append(_validate_positive)
         if tenant:
             self.fields['category'].queryset = Category.objects.filter(tenant=tenant, is_active=True)
             self.fields['supplier'].queryset = Supplier.objects.filter(tenant=tenant, is_active=True)
@@ -115,24 +126,21 @@ class StockAdjustmentForm(forms.ModelForm):
         widgets = {
             'product': forms.Select(attrs={'class': 'form-select select2', 'data-placeholder': 'Search product...'}),
             'movement_type': forms.Select(attrs={'class': 'form-select select2'}),
-            'quantity': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'placeholder': 'Positive = in, Negative = out'}),
-            'unit_cost': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'quantity': forms.NumberInput(attrs={'class': 'form-control', 'step': '1'}),
+            'unit_cost': forms.NumberInput(attrs={'class': 'form-control', 'step': '1'}),
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
             'reference': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Invoice / PO number'}),
         }
 
     def __init__(self, *args, **kwargs):
         tenant=kwargs.pop('tenant', None)
-        initial=kwargs.pop('initial', None)
         super().__init__(*args, **kwargs)
+        self.fields['quantity'].validators.append(_validate_positive)
+        self.fields['unit_cost'].validators.append(_validate_positive)
         if tenant:
             self.fields['product'].queryset = Product.objects.filter(tenant=tenant, is_active=True)
         else:
             self.fields['product'].queryset = Product.objects.none()
-        if initial:
-            for field, value in initial.items():
-                if field in self.fields:
-                    self.fields[field].initial = value
 
     def clean_notes(self):
         notes = self.cleaned_data.get('notes')
