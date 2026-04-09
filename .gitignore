@@ -265,4 +265,5 @@ poetry.toml
 pyrightconfig.json
 status.md
 setup.py
+config.json
 staticfiles/
