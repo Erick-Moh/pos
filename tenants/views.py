@@ -70,3 +70,4 @@ def tenant_toggle(request, pk):
     state = 'activated' if tenant.is_active else 'deactivated'
     messages.success(request, f'Tenant "{tenant.name}" {state}.')
     return redirect('tenants:list')
+

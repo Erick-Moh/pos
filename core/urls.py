@@ -8,6 +8,7 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from . import views as core_views
+from tenants.manifest_views import service_worker, manifest
 
 tenant_urlpatterns = [
     path('users/', include('users.urls', namespace='users')),
@@ -21,6 +22,8 @@ urlpatterns = [
     path('django-admin/', admin.site.urls),
     path('platform/', include('platform_app.urls', namespace='platform')),
     path('', core_views.landing_page, name='landing'),
+    path('service-worker.js', service_worker),
+    path('<slug:tenant_slug>/manifest.json', manifest),
     path('<slug:tenant_slug>/', include((tenant_urlpatterns, 'tenant'), namespace='tenant')),
 ]
 

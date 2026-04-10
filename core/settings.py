@@ -129,3 +129,5 @@ LOGIN_URL = '/login-required/'   # fallback only — middleware handles real red
 # Session settings
 SESSION_COOKIE_AGE = 86400  # 24 hours
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+
+APPEND_SLASH = False

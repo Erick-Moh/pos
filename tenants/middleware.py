@@ -19,7 +19,8 @@ GLOBAL_PREFIXES = (
     '/static/',
     '/media/',
     '/__debug__/',
-    '/platform/',   # GetCore platform staff workspace — no tenant context
+    '/platform/',
+    '/service-worker.js'  # GetCore platform staff workspace — no tenant context
 )
 
 class TenantMiddleware:
