@@ -4,18 +4,21 @@ Django settings for the GetCore POS System.
 """
 
 from pathlib import Path
-import os
+import json
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+with open(BASE_DIR / 'config.json') as config_file:
+    config = json.load(config_file)
+
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'getcore-erp-change-this-in-production-kenya-2025'
+SECRET_KEY = config['SECRET_KEY']
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config['DEBUG']
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = config['ALLOWED_HOSTS']
 
 # Application definition
 INSTALLED_APPS = [
@@ -77,14 +80,26 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'core.wsgi.application'
 
-# Database - SQLite for easy deployment
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+if DEBUG:
+    # Database - SQLite for easy deployment and development
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
     }
-}
-
+else:
+    # In production, use environment variables or config.json for DB settings
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': config['DB_NAME'],
+            'USER': config['DB_USER'],
+            'PASSWORD': config['DB_PASSWORD'],
+            'HOST': config['DB_HOST'],
+            'PORT': config['DB_PORT'],
+        }
+    }
 # Custom User Model
 AUTH_USER_MODEL = 'users.GetCoreUser'
 
@@ -125,6 +140,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # LOGIN_URL cannot be a simple path in multi-tenant mode;
 # ForceCredentialChangeMiddleware handles redirects per tenant.
 LOGIN_URL = '/login-required/'   # fallback only — middleware handles real redirects
+DEFAULT_USER_PASSWORD = config['DEFAULT_USER_PASSWORD']
+DEFAULT_USER_PIN = config['DEFAULT_USER_PIN']
 
 # Session settings
 SESSION_COOKIE_AGE = 86400  # 24 hours
