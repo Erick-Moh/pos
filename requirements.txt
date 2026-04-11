@@ -5,3 +5,4 @@ celery
 redis
 psycopg2-binary
 django-celery-beat
+django-celery-results

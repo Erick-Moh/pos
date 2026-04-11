@@ -1,19 +1,19 @@
 {% extends "platform/base.html" %}
 {% block title %}{{ action }} Client{% endblock %}
+
 {% block breadcrumb_extra %}
 <li class="breadcrumb-item">
     <a href="{% url 'platform:tenant_list' %}" class="text-muted text-decoration-none small">Clients</a>
 </li>
 {% endblock %}
+
 {% block page_title %}{{ action }} Client{% endblock %}
 
 {% block extra_head %}
 <style>
-/* Ensure form-section title background matches platform card */
 .p-form-body .form-section { background: #fff; border-color: #e2e8f0; }
 .p-form-body .form-section-title { background: #fff; color: #10b981; }
 
-/* Field label consistent with platform style */
 .p-form-body .form-label {
     font-size: 11px;
     font-weight: 700;
@@ -24,7 +24,6 @@
     display: block;
 }
 
-/* Select2 min-height matches other inputs */
 .p-form-body .select2-container--bootstrap-5 .select2-selection {
     min-height: 42px !important;
     border-radius: 8px !important;
@@ -32,41 +31,21 @@
     font-size: 14px !important;
     padding: 8px 12px !important;
 }
-.p-form-body .select2-container--bootstrap-5.select2-container--focus .select2-selection,
-.p-form-body .select2-container--bootstrap-5.select2-container--open .select2-selection {
-    border-color: #10b981 !important;
-    box-shadow: 0 0 0 3px rgba(16,185,129,.12) !important;
-}
-.p-form-body .select2-container--bootstrap-5 .select2-results__option--highlighted {
-    background-color: #10b981 !important;
-}
 
-/* Date input full width */
 .p-form-body input[type="date"].form-control {
     width: 100%;
     padding: 10px 12px;
     border: 1.5px solid #e2e8f0;
     border-radius: 8px;
     font-size: 14px;
-    color: #1e293b;
-}
-.p-form-body input[type="date"].form-control:focus {
-    border-color: #10b981;
-    box-shadow: 0 0 0 3px rgba(16,185,129,.12);
-    outline: none;
 }
 
-/* Toggle switch alignment inside Status column */
 .p-form-body .form-check-input[type="checkbox"] {
     width: 38px;
     height: 20px;
     border-radius: 20px;
     appearance: none;
     background: #cbd5e1;
-    border: none;
-    cursor: pointer;
-    transition: background .2s;
-    flex-shrink: 0;
     position: relative;
 }
 .p-form-body .form-check-input[type="checkbox"]::after {
@@ -76,8 +55,6 @@
     width: 16px; height: 16px;
     border-radius: 50%;
     background: white;
-    box-shadow: 0 1px 3px rgba(0,0,0,.2);
-    transition: left .2s;
 }
 .p-form-body .form-check-input[type="checkbox"]:checked {
     background: #10b981;
@@ -90,149 +67,117 @@
 
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-lg-8 col-xl-7">
+<div class="col-lg-8 col-xl-7">
 
-        <div class="p-form-card">
-            <div class="p-form-header">
-                <h5 class="fw-bold mb-1">
-                    <i class="bi bi-buildings me-2" style="color:#10b981;"></i>
-                    {{ action }} Client
-                </h5>
-                <p class="text-muted small mb-0">
-                    {% if action == 'Create' %}
-                        Set up a new client workspace. The slug becomes their access URL.
-                    {% else %}
-                        Editing <strong>{{ obj.name }}</strong> &mdash; Ref: <code>{{ obj.reference_code }}</code>
-                    {% endif %}
-                </p>
-            </div>
-
-            <form method="post" novalidate>
-                {% csrf_token %}
-                {% if form.non_field_errors %}
-                <div class="alert alert-danger mx-4 mt-3">{{ form.non_field_errors }}</div>
-                {% endif %}
-
-                <div class="p-form-body">
-
-                    <!-- Business identity -->
-                    <div class="form-section mb-4">
-                        <span class="form-section-title">Business Identity</span>
-                        <div class="row g-3">
-                            <div class="col-12">
-                                <label class="form-label" for="{{ form.name.id_for_label }}">Business Name <span class="text-danger">*</span></label>
-                                {{ form.name }}
-                                {% for e in form.name.errors %}<div class="field-error"><i class="bi bi-exclamation-circle"></i>{{ e }}</div>{% endfor %}
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label" for="{{ form.slug.id_for_label }}">Access Key (Slug) <span class="text-danger">*</span></label>
-                                {{ form.slug }}
-                                <div class="form-text">
-                                    Lowercase letters, numbers, hyphens only. &nbsp;
-                                    Access URL: <strong>getcore.co.ke/<span id="slugPreview">{{ form.slug.value|default:"…" }}</span>/pos/</strong>
-                                </div>
-                                {% for e in form.slug.errors %}<div class="field-error"><i class="bi bi-exclamation-circle"></i>{{ e }}</div>{% endfor %}
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Owner contact -->
-                    <div class="form-section mb-4">
-                        <span class="form-section-title">Owner Contact</span>
-                        <div class="row g-3">
-                            <div class="col-sm-4">
-                                <label class="form-label" for="{{ form.owner_name.id_for_label }}">Name</label>
-                                {{ form.owner_name }}
-                            </div>
-                            <div class="col-sm-4">
-                                <label class="form-label" for="{{ form.owner_email.id_for_label }}">Email</label>
-                                {{ form.owner_email }}
-                            </div>
-                            <div class="col-sm-4">
-                                <label class="form-label" for="{{ form.owner_phone.id_for_label }}">Phone</label>
-                                {{ form.owner_phone }}
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Subscription -->
-                    <div class="form-section mb-4">
-                        <span class="form-section-title">Subscription</span>
-                        <div class="row g-3">
-                            <div class="col-sm-5">
-                                <label class="form-label" for="{{ form.plan.id_for_label }}">Plan</label>
-                                {{ form.plan }}
-                                {% for e in form.plan.errors %}<div class="field-error"><i class="bi bi-exclamation-circle"></i>{{ e }}</div>{% endfor %}
-                            </div>
-                            <div class="col-sm-4">
-                                <label class="form-label" for="{{ form.trial_ends_on.id_for_label }}">Trial Ends</label>
-                                {{ form.trial_ends_on }}
-                                {% for e in form.trial_ends_on.errors %}<div class="field-error"><i class="bi bi-exclamation-circle"></i>{{ e }}</div>{% endfor %}
-                            </div>
-                            <div class="col-sm-3">
-                                <label class="form-label d-block">Status</label>
-                                <div class="d-flex align-items-center gap-2 pt-1" style="height:42px;">
-                                    {{ form.is_active }}
-                                    <label class="form-check-label fw-semibold mb-0" for="{{ form.is_active.id_for_label }}">
-                                        Active
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {% if action == 'Create' %}
-                    <div class="alert alert-info py-2" style="font-size:13px;">
-                        <i class="bi bi-info-circle me-2"></i>
-                        After creating, go to
-                        <strong>/&lt;slug&gt;/users/manage/create/</strong>
-                        to add the first admin user for this client.
-                    </div>
-                    {% endif %}
-
-                </div>
-
-                <div class="p-form-footer">
-                    <button type="submit" class="btn btn-platform px-5">
-                        <i class="bi bi-check-lg me-1"></i>
-                        {% if action == 'Create' %}Create Client{% else %}Save Changes{% endif %}
-                    </button>
-                    <a href="{% url 'platform:tenant_list' %}" class="btn btn-outline-secondary px-4">Cancel</a>
-                </div>
-            </form>
-        </div>
-
-    </div>
+<div class="p-form-card">
+<div class="p-form-header">
+    <h5 class="fw-bold mb-1">
+        <i class="bi bi-buildings me-2" style="color:#10b981;"></i>
+        {{ action }} Client
+    </h5>
 </div>
-{% endblock %}
 
-{% block extra_scripts %}
-<script>
-const nameInput = document.getElementById('{{ form.name.id_for_label }}');
-const slugInput = document.getElementById('{{ form.slug.id_for_label }}');
-const slugPreview = document.getElementById('slugPreview');
+<form method="post" novalidate>
+{% csrf_token %}
 
-function updatePreview() {
-    slugPreview.textContent = slugInput.value || '…';
-}
+<div class="p-form-body">
 
-if (slugInput) {
-    slugInput.addEventListener('input', updatePreview);
-    updatePreview();
-}
+<!-- Business identity -->
+<div class="form-section mb-4">
+<span class="form-section-title">Business Identity</span>
+<div class="row g-3">
 
-// Auto-slugify name → slug when slug is empty
-if (nameInput && slugInput) {
-    nameInput.addEventListener('input', function () {
-        if (!slugInput.value) {
-            slugInput.value = this.value.toLowerCase()
-                .replace(/[^a-z0-9\s-]/g, '')
-                .replace(/\s+/g, '-')
-                .replace(/-+/g, '-')
-                .slice(0, 60);
-            updatePreview();
-        }
-    });
-}
-</script>
+<div class="col-12">
+<label class="form-label">Business Name</label>
+{{ form.name }}
+</div>
+
+<div class="col-12">
+<label class="form-label">Slug</label>
+{{ form.slug }}
+</div>
+
+</div>
+</div>
+
+<!-- Owner -->
+<div class="form-section mb-4">
+<span class="form-section-title">Owner</span>
+<div class="row g-3">
+
+<div class="col-md-4">
+<label class="form-label">Name</label>
+{{ form.owner_name }}
+</div>
+
+<div class="col-md-4">
+<label class="form-label">Email</label>
+{{ form.owner_email }}
+</div>
+
+<div class="col-md-4">
+<label class="form-label">Phone</label>
+{{ form.owner_phone }}
+</div>
+
+</div>
+</div>
+
+<!-- Subscription -->
+<div class="form-section mb-4">
+<span class="form-section-title">Subscription</span>
+<div class="row g-3">
+
+<div class="col-md-4">
+<label class="form-label">Plan</label>
+{{ form.plan }}
+</div>
+
+<div class="col-md-4">
+<label class="form-label">Trial Ends</label>
+{{ form.trial_ends_on }}
+</div>
+
+<div class="col-md-4">
+<label class="form-label">Active</label>
+{{ form.is_active }}
+</div>
+
+</div>
+</div>
+
+<!-- 🔥 MISSING FIELDS (AUTO RENDER) -->
+{% for field in form %}
+    {% if field.name not in "name slug owner_name owner_email owner_phone plan trial_ends_on is_active" %}
+    <div class="form-section mb-4">
+        <span class="form-section-title">{{ field.label }}</span>
+        <div class="row g-3">
+            <div class="col-12">
+                <label class="form-label">{{ field.label }}</label>
+                {{ field }}
+                {% if field.help_text %}
+                    <div class="form-text">{{ field.help_text }}</div>
+                {% endif %}
+                {% for e in field.errors %}
+                    <div class="field-error">{{ e }}</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+{% endfor %}
+
+</div>
+
+<div class="p-form-footer">
+<button type="submit" class="btn btn-platform">
+    {% if action == 'Create' %}Create{% else %}Update{% endif %}
+</button>
+</div>
+
+</form>
+</div>
+
+</div>
+</div>
 {% endblock %}

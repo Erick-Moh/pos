@@ -29,9 +29,9 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
-    # Third-party apps
-    # (Select2 is loaded via CDN in templates)
-    'django.contrib.humanize',   # provides intcomma, naturaltime, etc.
+    'django.contrib.humanize',
+    'django_celery_results',
+    'django_celery_beat',
 
     # GetCore Apps
     'tenants',
@@ -142,9 +142,30 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGIN_URL = '/login-required/'   # fallback only — middleware handles real redirects
 DEFAULT_USER_PASSWORD = config['DEFAULT_USER_PASSWORD']
 DEFAULT_USER_PIN = config['DEFAULT_USER_PIN']
+SITE_URL = config['SITE_URL']
+
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = config['EMAIL_HOST']
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = config['EMAIL_HOST_USER']
+EMAIL_HOST_PASSWORD = config['EMAIL_HOST_PASSWORD']
+DEFAULT_FROM_EMAIL = config['DEFAULT_FROM_EMAIL']
 
 # Session settings
 SESSION_COOKIE_AGE = 86400  # 24 hours
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 
 APPEND_SLASH = False
+
+
+CELERY_BROKER_URL = 'redis://127.0.0.1:6379/0'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_BACKEND = 'django-db'
+CELERY_TASK_DEFAULT_QUEUE = "getcore"
+CELERY_TIMEZONE = "Africa/Nairobi"
+CELERY_ENABLE_UTC = True
+CELERY_TASK_ACKS_LATE = True
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1

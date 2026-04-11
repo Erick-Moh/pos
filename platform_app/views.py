@@ -23,6 +23,7 @@ from .decorators import staff_required
 from .forms import (
     PlatformLoginForm, TenantForm, PlatformUserForm,
 )
+from .tasks import send_tenant_welcome_email
 
 User = get_user_model()
 
@@ -162,8 +163,15 @@ def tenant_create(request):
             tenant = form.save()
             # Auto-create SystemSetting for this tenant
             SystemSetting.get_settings(tenant)
+            send_tenant_welcome_email.delay(
+                tenant_name=tenant.name,
+                contact_email=tenant.owner_email,
+                contact_name=tenant.owner_name,
+            )
             messages.success(request, f'Client "{tenant.name}" created. Access key: /{tenant.slug}/')
             return redirect('platform:tenant_detail', pk=tenant.pk)
+        else:
+            messages.error(request, form.errors.as_text())
     else:
         form = TenantForm()
     return render(request, 'platform/tenant_form.html', {'form': form, 'action': 'Create'})
