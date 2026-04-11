@@ -87,13 +87,13 @@
                                 {{ form.username }}
                                 {% for e in form.username.errors %}<div class="field-error"><i class="bi bi-exclamation-circle"></i>{{ e }}</div>{% endfor %}
                             </div>
-                            <div class="col-sm-6">
-                                <label class="form-label">Email</label>
+                            <div class="col-sm-12">
+                                <label class="form-label">Email <span class="required-star">*</span></label>
                                 {{ form.email }}
                                 {% for e in form.email.errors %}<div class="field-error"><i class="bi bi-exclamation-circle"></i>{{ e }}</div>{% endfor %}
                             </div>
-                            <div class="col-sm-6">
-                                <label class="form-label">Phone</label>
+                            <div class="col-sm-12">
+                                <label class="form-label">Phone </label>
                                 {{ form.phone_number }}
                             </div>
                         </div>
