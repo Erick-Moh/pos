@@ -7,9 +7,7 @@ Each tenant is a distinct business client with their own:
   - Accessed via example.com/<tenant_slug>/
 """
 
-import uuid
 from django.db import models
-from django.utils.text import slugify
 
 
 class Tenant(models.Model):
@@ -25,22 +23,19 @@ class Tenant(models.Model):
         ('enterprise', 'Enterprise'),
     ]
 
-    # ── Identity ───────────────────────────────────────────────────────────
     name = models.CharField(
         max_length=200,
         help_text='Business / client name e.g. "Kamau Agrovet Nakuru"'
     )
     slug = models.SlugField(
-        max_length=80,
+        max_length=255,
         unique=True,
-        help_text='URL-safe access key e.g. "kamau-agrovet". Used in: example.com/kamau-agrovet/'
     )
     # Internal reference for platform admin
     reference_code = models.CharField(
         max_length=20,
         unique=True,
         blank=True,
-        help_text='Auto-generated short reference e.g. NX-00042'
     )
 
     # ── Contact ────────────────────────────────────────────────────────────
@@ -73,6 +68,7 @@ class Tenant(models.Model):
         if not self.reference_code:
             count = Tenant.objects.count() + 1
             self.reference_code = f'GC-{count:05d}'
+            self.slug = f'{self.name.lower().replace(" ", "-")}-{self.reference_code.lower()}'
         super().save(*args, **kwargs)
 
     @property

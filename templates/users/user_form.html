@@ -90,6 +90,7 @@
                             <div class="col-sm-6">
                                 <label class="form-label">Email</label>
                                 {{ form.email }}
+                                {% for e in form.email.errors %}<div class="field-error"><i class="bi bi-exclamation-circle"></i>{{ e }}</div>{% endfor %}
                             </div>
                             <div class="col-sm-6">
                                 <label class="form-label">Phone</label>

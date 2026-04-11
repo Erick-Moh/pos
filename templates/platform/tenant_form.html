@@ -88,13 +88,11 @@
 <div class="row g-3">
 
 <div class="col-12">
-<label class="form-label">Business Name</label>
+<label class="form-label">Business Name<span class="text-danger">*</span></label>
 {{ form.name }}
-</div>
-
-<div class="col-12">
-<label class="form-label">Slug</label>
-{{ form.slug }}
+{% for e in form.name.errors %}
+    <div class="field-error">{{ e }}</div>
+{% endfor %}
 </div>
 
 </div>
@@ -102,22 +100,31 @@
 
 <!-- Owner -->
 <div class="form-section mb-4">
-<span class="form-section-title">Owner</span>
+<span class="form-section-title">Owner Details</span>
 <div class="row g-3">
 
-<div class="col-md-4">
-<label class="form-label">Name</label>
+<div class="col-md-12">
+<label class="form-label">Name<span class="text-danger">*</span></label>
 {{ form.owner_name }}
+{% for e in form.owner_name.errors %}
+    <div class="field-error">{{ e }}</div>
+{% endfor %}
 </div>
 
-<div class="col-md-4">
-<label class="form-label">Email</label>
+<div class="col-md-12">
+<label class="form-label">Email<span class="text-danger">*</span></label>
 {{ form.owner_email }}
+{% for e in form.owner_email.errors %}
+    <div class="field-error">{{ e }}</div>
+{% endfor %}
 </div>
 
-<div class="col-md-4">
-<label class="form-label">Phone</label>
+<div class="col-md-12">
+<label class="form-label">Phone<span class="text-danger">*</span></label>
 {{ form.owner_phone }}
+{% for e in form.owner_phone.errors %}
+    <div class="field-error">{{ e }}</div>
+{% endfor %}
 </div>
 
 </div>

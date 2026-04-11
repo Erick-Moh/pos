@@ -171,7 +171,7 @@ def tenant_create(request):
             messages.success(request, f'Client "{tenant.name}" created. Access key: /{tenant.slug}/')
             return redirect('platform:tenant_detail', pk=tenant.pk)
         else:
-            messages.error(request, form.errors.as_text())
+            messages.error(request, 'Please correct the errors below.')
     else:
         form = TenantForm()
     return render(request, 'platform/tenant_form.html', {'form': form, 'action': 'Create'})

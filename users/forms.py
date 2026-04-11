@@ -103,6 +103,11 @@ class UserCreateForm(forms.ModelForm):
             'phone_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '+254...'}),
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        required_fields = ['username', 'email', 'role']
+        for field_name in required_fields:
+            self.fields[field_name].required = True
 
 class UserEditForm(forms.ModelForm):    
     class Meta:
