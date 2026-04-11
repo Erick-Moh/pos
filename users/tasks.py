@@ -18,10 +18,10 @@ def send_welcome_email(self, user_id, username, credential_type, credential_valu
         # Determine credential label based on type
         if credential_type == 'pin':
             credential_label = 'PIN'
-            credential_hint = '💡 You\'ll be prompted to change this on your first login'
+            credential_hint = '💡 You\'ll be prompted to change your PIN on your first login'
         else:
             credential_label = 'Password'
-            credential_hint = '💡 You\'ll be prompted to change this on your first login'
+            credential_hint = '💡 You\'ll be prompted to change your password on your first login'
 
         context = {
             'first_name': user.first_name or username,
@@ -31,7 +31,7 @@ def send_welcome_email(self, user_id, username, credential_type, credential_valu
             'credential_hint': credential_hint,
             'tenant_name': tenant_name,
             'tenant_slug': tenant_slug,
-            'login_url': f'{settings.SITE_URL}/{tenant_slug}/users/login/',
+            'login_url': f'{settings.SITE_URL}/{tenant_slug}/pos/',
         }
 
         html_message = render_to_string('emails/welcome_email.html', context)
@@ -43,7 +43,7 @@ Hello {context['first_name']},
 
 Your account has been created successfully. Here are your login credentials:
 
-Business/Tenant: {tenant_name}
+Business Name: {tenant_name}
 Username: {username}
 {credential_label}: {credential_value}
 

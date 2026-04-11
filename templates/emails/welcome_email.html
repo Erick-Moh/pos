@@ -289,7 +289,7 @@
         <div class="content">
             <!-- Greeting -->
             <div class="greeting">
-                Hello <strong>{{ first_name }}</strong>,
+                Hello <strong>{{ first_name|default:username }}</strong>,
             </div>
 
             <!-- Intro -->
@@ -302,7 +302,7 @@
                 <h3>🔐 Your Login Credentials</h3>
                 
                 <div class="credential-item">
-                    <div class="credential-label">Business / Tenant</div>
+                    <div class="credential-label">Business Name</div>
                     <div class="credential-value">
                         {{ tenant_name }}
                     </div>
@@ -316,18 +316,18 @@
                 </div>
 
                 <div class="credential-item">
-                    <div class="credential-label">Default Password</div>
+                    <div class="credential-label">{{ credential_label }}</div>
                     <div class="credential-value">
-                        {{ password }}
+                        {{ credential_value }}
                     </div>
-                    <div class="copy-hint">💡 You'll be prompted to change this on your first login</div>
+                    <div class="copy-hint">{{ credential_hint }}</div>
                 </div>
             </div>
 
             <!-- Warning -->
             <div class="warning-box">
                 <p>
-                    <strong>⚠️ Important:</strong> For security, change your password immediately after your first login. Never share your credentials with anyone.
+                    <strong>⚠️ Important:</strong> For security, change your {{ credential_label }} immediately after your first login. Never share your credentials with anyone.
                 </p>
             </div>
 
@@ -343,8 +343,7 @@
                 <h4>📋 Next Steps</h4>
                 <ol>
                     <li><strong>Sign in</strong> using your credentials above</li>
-                    <li><strong>Change your password</strong> when prompted (you'll be required to do this)</li>
-                    <li><strong>Complete your profile</strong> with any additional information</li>
+                    <li><strong>Change your {{ credential_label }}</strong> when prompted (you'll be required to do this)</li>
                     <li><strong>Start using</strong> GetCore POS for your business</li>
                 </ol>
             </div>
