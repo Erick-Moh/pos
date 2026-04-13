@@ -30,7 +30,7 @@ class TenantForm(forms.ModelForm):
         model = Tenant
         fields = [
             'name','owner_name', 'owner_email', 'owner_phone',
-            'plan', 'is_active', 'trial_ends_on',
+            'plan', 'is_active', 'trial_ends_on', 'business_type'
         ]
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Kamau Agrovet Nakuru'}),
@@ -38,13 +38,14 @@ class TenantForm(forms.ModelForm):
             'owner_email': forms.EmailInput(attrs={'class': 'form-control'}),
             'owner_phone': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '+254...'}),
             'plan': forms.Select(attrs={'class': 'form-select select2'}),
+            'business_type': forms.Select(attrs={'class': 'form-select select2'}),
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'trial_ends_on': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
         }
         
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        required_fields = ['name', 'owner_name', 'owner_email', 'owner_phone']
+        required_fields = ['name', 'owner_name', 'owner_email', 'owner_phone', 'business_type']
         for field in required_fields:
             self.fields[field].required = True
         

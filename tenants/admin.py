@@ -13,8 +13,8 @@ class TenantAdmin(admin.ModelAdmin):
     readonly_fields = ['reference_code', 'created_at', 'updated_at']
 
     fieldsets = [
-        ('Identity',      {'fields': ['name', 'slug', 'reference_code']}),
+        ('Identity',      {'fields': ['name', 'slug', 'reference_code', 'business_type']}),
         ('Owner Contact', {'fields': ['owner_name', 'owner_email', 'owner_phone']}),
-        ('Subscription',  {'fields': ['plan', 'is_active', 'trial_ends_on']}),
+        ('Subscription',  {'fields': ['plan', 'is_active', 'trial_ends_on', 'load_default_categories', 'load_default_products']}),
         ('Timestamps',    {'fields': ['created_at', 'updated_at']}),
     ]

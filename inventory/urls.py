@@ -23,4 +23,5 @@ urlpatterns = [
     path('suppliers/<int:pk>/delete/', views.supplier_delete, name='supplier_delete'),
     path('load-default-categories/', views.load_default_categories, name='load_default_categories'),
     path('stock-movement/<int:pk>/delete/', views.stock_adjustment_delete, name='stock_adjustment_delete'),
+    path('load-default-products/', views.load_default_products, name='load_default_products'),
 ]

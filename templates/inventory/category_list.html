@@ -12,9 +12,11 @@
         <a href="/{{ tenant.slug }}/inventory/categories/add/" class="btn btn-nexus">
             <i class="bi bi-plus-lg me-1"></i>Add Category
         </a>
+        {% if not tenant.load_default_categories %}
         <a href="/{{ tenant.slug }}/inventory/load-default-categories/" class="btn btn-nexus">
             <i class="bi bi-arrow-clockwise me-1"></i>Load Default Categories
         </a>
+        {% endif %}
     </div>
 </div>
 

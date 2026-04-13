@@ -94,6 +94,8 @@
                 <dl class="row small mb-0">
                     <dt class="col-5 text-muted fw-normal">Name</dt>
                     <dd class="col-7 fw-semibold">{{ tenant.name }}</dd>
+                    <dt class="col-5 text-muted fw-normal">Business Type</dt>
+                    <dd class="col-7">{{ tenant.get_business_type_display }}</dd>
                     <dt class="col-5 text-muted fw-normal">Slug</dt>
                     <dd class="col-7"><code>{{ tenant.slug }}</code></dd>
                     <dt class="col-5 text-muted fw-normal">Ref Code</dt>

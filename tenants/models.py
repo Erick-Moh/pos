@@ -22,10 +22,78 @@ class Tenant(models.Model):
         ('business',   'Business'),
         ('enterprise', 'Enterprise'),
     ]
+    
+    BUSINESS_TYPE_CHOICES = [
+        # Food & Beverage
+        ('bar', 'Bar'),
+        ('restaurant', 'Restaurant'),
+        ('bar_and_restaurant', 'Bar & Restaurant'),
+        ('cafe', 'Café'),
+        ('fast_food', 'Fast Food'),
+        ('bakery', 'Bakery'),
+        ('butchery', 'Butchery'),
+        ('nyama_choma', 'Nyama Choma Joint'),
+        ('juice_bar', 'Juice Bar'),
+        ('catering', 'Catering Services'),
 
+        # Alcohol & Tobacco
+        ('wines_and_spirits', 'Wines & Spirits'),
+        ('liquor_store', 'Liquor Store'),
+        
+        # Retail Shops
+        ('grocery', 'Grocery'),
+        ('supermarket', 'Supermarket'),
+        ('wholesale_shop', 'Wholesale Shop'),
+        ('kiosk', 'Kiosk'),
+        ('general_store', 'General Store'),
+
+        # Health & Beauty
+        ('pharmacy', 'Pharmacy'),
+        ('chemist', 'Chemist'),
+        ('salon', 'Salon'),
+        ('barbershop', 'Barbershop'),
+        ('spa', 'Spa'),
+        ('cosmetics', 'Cosmetics Shop'),
+
+        # Fashion & Apparel
+        ('clothing', 'Clothing'),
+        ('boutique', 'Boutique'),
+        ('shoe_store', 'Shoe Store'),
+        ('tailor', 'Tailor'),
+
+        # Electronics & Tech
+        ('electronics', 'Electronics'),
+        ('phone_shop', 'Phone Shop'),
+        ('computer_shop', 'Computer Shop'),
+        ('cyber_cafe', 'Cyber Café'),
+        ('repair_shop', 'Repair Shop'),
+
+        # Agriculture & Livestock
+        ('agrovet', 'Agrovet'),
+        ('farm', 'Farm'),
+        ('dairy', 'Dairy Shop'),
+        ('poultry', 'Poultry Business'),
+
+        # Hardware & Construction
+        ('hardware', 'Hardware Store'),
+        ('timber_yard', 'Timber Yard'),
+        ('paint_shop', 'Paint Shop'),
+
+        # Transport & Automotive
+        ('car_dealership', 'Car Dealership'),
+        ('garage', 'Garage'),
+        ('car_wash', 'Car Wash'),
+        ('spare_parts', 'Spare Parts Shop'),
+    ]
     name = models.CharField(
         max_length=200,
         help_text='Business / client name e.g. "Kamau Agrovet Nakuru"'
+    )
+    business_type = models.CharField(
+        max_length=200,
+        choices=BUSINESS_TYPE_CHOICES,
+        null=True,
+        help_text='Select the type of business'
     )
     slug = models.SlugField(
         max_length=255,
@@ -54,6 +122,12 @@ class Tenant(models.Model):
     # ── Timestamps ─────────────────────────────────────────────────────────
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    load_default_categories = models.BooleanField(
+        default=False
+    )
+    load_default_products = models.BooleanField(
+        default=False
+    )
 
     class Meta:
         ordering = ['name']

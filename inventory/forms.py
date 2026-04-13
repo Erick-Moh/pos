@@ -102,7 +102,9 @@ class ProductForm(forms.ModelForm):
         self.fields['reorder_level'].validators.append(_validate_positive)
         self.fields['max_stock_level'].validators.append(_validate_positive)
         if tenant:
-            self.fields['category'].queryset = Category.objects.filter(tenant=tenant, is_active=True)
+            self.fields['category'].queryset = Category.objects.filter(
+                tenant=tenant, is_active=True
+            ).exclude(parent__isnull=True)
             self.fields['supplier'].queryset = Supplier.objects.filter(tenant=tenant, is_active=True)
         else:
             self.fields['category'].queryset = Category.objects.none()

@@ -12,7 +12,7 @@ from django.contrib import messages
 from django.db.models import Count, Sum, Q
 from django.utils import timezone
 from django.contrib.auth import get_user_model
-from datetime import timedelta, date
+from datetime import timedelta
 from decimal import Decimal
 
 from tenants.models import Tenant
@@ -191,7 +191,6 @@ def tenant_edit(request, pk):
     return render(request, 'platform/tenant_form.html', {
         'form': form, 'action': 'Edit', 'obj': tenant,
     })
-
 
 @staff_required
 def tenant_detail(request, pk):

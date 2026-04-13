@@ -11,7 +11,10 @@ from tenants.mixins import get_tenant_or_404
 from .models import Category, Supplier, Product, StockMovement
 from .forms import CategoryForm, SupplierForm, ProductForm, StockAdjustmentForm
 from .default_cats import (
-    CATEGORY_TREE
+    CATEGORY_TREE_BY_BUSINESS
+)
+from .default_prods import (
+    PRODUCTS
 )
 
 
@@ -186,12 +189,28 @@ def category_list(request, tenant_slug):
         'categories': categories, 'tenant_slug': tenant_slug,
     })
 
-
 @login_required_tenant
 @admin_required
 def load_default_categories(request, tenant_slug):
     tenant = get_tenant_or_404(request)
     created_count = 0
+    business_type = tenant.business_type
+    # Handle combined case properly
+    if tenant.load_default_categories:
+        messages.error(request, "Default categories have already been loaded for this tenant.")
+        return redirect('tenant:inventory:category_list', tenant_slug=tenant_slug)
+    
+    if business_type == 'bar_and_restaurant':
+        # Create a new dict instead of modifying the original
+        CATEGORY_TREE = {}
+        bar_tree = CATEGORY_TREE_BY_BUSINESS.get('bar', {})
+        restaurant_tree = CATEGORY_TREE_BY_BUSINESS.get('restaurant', {})
+        CATEGORY_TREE.update(bar_tree)
+        CATEGORY_TREE.update(restaurant_tree)
+    else:
+        CATEGORY_TREE = CATEGORY_TREE_BY_BUSINESS.get(business_type, {})
+        if not CATEGORY_TREE:
+            CATEGORY_TREE = CATEGORY_TREE_BY_BUSINESS.get('default', {})        
     try:
         with transaction.atomic():
             for parent_name, data in CATEGORY_TREE.items():
@@ -199,14 +218,17 @@ def load_default_categories(request, tenant_slug):
                     tenant=tenant,
                     name=parent_name,
                     defaults={
-                        "description": data.get("desc"),
-                        "icon": data.get("icon"),
+                        "description": data.get("desc", ""),
+                        "icon": data.get("icon", ""),
                         "parent": None,
                     }
                 )
                 if created:
                     created_count += 1
-                for child_name, child_desc in data.get("children", []):
+                
+                # Fixed: children should be a list of tuples
+                children = data.get("children", [])
+                for child_name, child_desc in children:
                     _, created = Category.objects.get_or_create(
                         tenant=tenant,
                         name=child_name,
@@ -217,10 +239,58 @@ def load_default_categories(request, tenant_slug):
                     )
                     if created:
                         created_count += 1
+        tenant.load_default_categories = True
+        tenant.save(update_fields=['load_default_categories'])
         messages.success(request, f"{created_count} categories loaded successfully.")
     except Exception as e:
         messages.error(request, f"Error loading categories: {str(e)}")
+        return redirect('tenant:inventory:category_list', tenant_slug=tenant_slug)
+    
     return redirect('tenant:inventory:category_list', tenant_slug=tenant_slug)
+
+@login_required_tenant
+@admin_required
+def load_default_products(request, tenant_slug):
+    tenant = get_tenant_or_404(request)
+    created_count = 0
+    business_type = tenant.business_type
+    if tenant.load_default_products:
+        messages.error(request, "Default products have already been loaded for this tenant.")
+        return redirect('tenant:inventory:product_list', tenant_slug=tenant_slug)
+    product_category_names = Category.objects.filter(
+        tenant=tenant,
+        parent__isnull=False
+    ).values_list('name', flat=True)
+    PRODUCT_TREE = [prod for prod in PRODUCTS if prod['category'] in product_category_names]
+    try:
+        with transaction.atomic():
+            for prod in PRODUCT_TREE:
+                category_name = prod.pop('category')
+                category = Category.objects.filter(tenant=tenant, name=category_name).first()
+                prod['category'] = category
+                prod['tenant'] = tenant
+                try:
+                    unit = prod.pop('unit')
+                except KeyError:
+                    unit = 'pcs'
+                product, created = Product.objects.get_or_create(
+                    name=prod['name'],
+                    unit=unit,
+                    is_service=prod['is_service'],
+                    category=category,
+                    tenant=tenant,
+                )
+                if created:
+                    created_count += 1
+                else:
+                    continue
+        tenant.load_default_products = True
+        tenant.save(update_fields=['load_default_products'])
+        messages.success(request, f"{created_count} products loaded successfully.")
+    except Exception as e:
+        messages.error(request, f"Error loading products: {str(e)}")
+        return redirect('tenant:inventory:product_list', tenant_slug=tenant_slug)    
+    return redirect('tenant:inventory:product_list', tenant_slug=tenant_slug)
 
 @login_required_tenant
 @admin_required
