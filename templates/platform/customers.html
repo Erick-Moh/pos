@@ -1,0 +1,190 @@
+{% extends "platform/base.html" %}
+{% load humanize %}
+{% block title %}Customer Directory — GetCore Platform{% endblock %}
+
+{% block content %}
+<style>
+  .customer-avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: #fff; font-weight: 700; font-size: .85rem;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .stat-pill {
+    background: #fff; border-radius: 10px; padding: .9rem 1.4rem;
+    box-shadow: 0 1px 4px rgba(0,0,0,.07);
+    border-left: 4px solid #6366f1;
+  }
+  .stat-pill.green { border-color: #22c55e; }
+  .badge-credit-on  { background:#dcfce7; color:#15803d; }
+  .badge-credit-off { background:#f3f4f6; color:#6b7280; }
+  .p-table thead th {
+    background:#f8fafc; font-size:.73rem; text-transform:uppercase;
+    letter-spacing:.05em; color:#64748b; border-bottom:2px solid #e2e8f0;
+    padding:.8rem 1rem; font-weight:600;
+  }
+  .p-table tbody td { padding:.85rem 1rem; vertical-align:middle; border-bottom:1px solid #f1f5f9; }
+  .p-table tbody tr:hover { background:#f8fafc; }
+  .p-table tbody tr:last-child td { border-bottom:none; }
+</style>
+
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <div>
+    <h4 class="fw-bold mb-0">Customer Directory</h4>
+    <div class="small text-muted">All registered customers across all client tenants</div>
+  </div>
+</div>
+
+<!-- Stat pills -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="stat-pill">
+      <div style="font-size:1.4rem;font-weight:700;color:#6366f1;">{{ total_count }}</div>
+      <div style="font-size:.75rem;color:#6b7280;">Total Customers</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-pill green">
+      <div style="font-size:1.4rem;font-weight:700;color:#16a34a;">{{ credit_count }}</div>
+      <div style="font-size:.75rem;color:#6b7280;">Credit Enabled</div>
+    </div>
+  </div>
+</div>
+
+<!-- Filters -->
+<form method="get" class="mb-3">
+  <div class="d-flex flex-wrap gap-2 align-items-end">
+    <div>
+      <label class="form-label small fw-medium mb-1">Search</label>
+      <div class="input-group" style="width:260px;">
+        <span class="input-group-text bg-white border-end-0">
+          <i class="bi bi-search text-muted" style="font-size:.8rem;"></i>
+        </span>
+        <input type="text" name="q" value="{{ q }}" class="form-control border-start-0 ps-0"
+               placeholder="Name, phone, email…">
+      </div>
+    </div>
+    <div>
+      <label class="form-label small fw-medium mb-1">Tenant / Client</label>
+      <select name="tenant" class="form-select" style="width:200px;">
+        <option value="">All Tenants</option>
+        {% for t in tenants %}
+        <option value="{{ t.pk }}" {% if tenant_filter == t.pk|stringformat:"s" %}selected{% endif %}>
+          {{ t.name }}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label class="form-label small fw-medium mb-1">Credit</label>
+      <select name="credit" class="form-select" style="width:140px;">
+        <option value="">All</option>
+        <option value="yes" {% if credit_filter == 'yes' %}selected{% endif %}>Credit Enabled</option>
+        <option value="no"  {% if credit_filter == 'no'  %}selected{% endif %}>No Credit</option>
+      </select>
+    </div>
+    <div class="d-flex gap-2">
+      <button type="submit" class="btn btn-primary btn-sm px-3">
+        <i class="bi bi-funnel me-1"></i>Filter
+      </button>
+      {% if q or tenant_filter or credit_filter %}
+      <a href="{% url 'platform:all_customers' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-x me-1"></i>Clear
+      </a>
+      {% endif %}
+    </div>
+  </div>
+</form>
+
+<!-- Table -->
+<div class="card border-0 shadow-sm" style="border-radius:12px;overflow:hidden;">
+  {% if customers %}
+  <div class="table-responsive">
+    <table class="table p-table mb-0">
+      <thead>
+        <tr>
+          <th class="ps-3">Customer</th>
+          <th>Tenant / Client</th>
+          <th>Phone</th>
+          <th class="text-center">Credit</th>
+          <th class="text-end">Outstanding</th>
+          <th class="text-center">Registered</th>
+          <th class="text-end pe-3"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in customers %}
+        <tr>
+          <td class="ps-3">
+            <div class="d-flex align-items-center gap-2">
+              <div class="customer-avatar">{{ c.name.0|upper }}</div>
+              <div>
+                <div class="fw-semibold" style="font-size:.9rem;">{{ c.name }}</div>
+                {% if c.email %}
+                <div class="small text-muted">{{ c.email }}</div>
+                {% endif %}
+              </div>
+            </div>
+          </td>
+          <td>
+            {% if c.tenant %}
+            <a href="{% url 'platform:tenant_detail' c.tenant.pk %}"
+               class="text-decoration-none fw-medium small">
+              {{ c.tenant.name }}
+            </a>
+            <div class="small text-muted">{{ c.tenant.reference_code }}</div>
+            {% else %}
+            <span class="text-muted small">—</span>
+            {% endif %}
+          </td>
+          <td class="small text-muted">{{ c.phone|default:"—" }}</td>
+          <td class="text-center">
+            {% if c.is_credit_allowed %}
+              <span class="badge badge-credit-on" style="font-size:.7rem;">
+                <i class="bi bi-check-circle-fill me-1"></i>Yes
+              </span>
+            {% else %}
+              <span class="badge badge-credit-off" style="font-size:.7rem;">No</span>
+            {% endif %}
+          </td>
+          <td class="text-end small">
+            {% if c.is_credit_allowed %}
+              {% with bal=c.outstanding_balance %}
+              <span class="{% if bal > 0 %}text-danger fw-bold{% else %}text-success{% endif %}">
+                KES {{ bal|floatformat:0|intcomma }}
+              </span>
+              {% endwith %}
+            {% else %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td class="text-center small text-muted">{{ c.created_at|date:"d M Y" }}</td>
+          <td class="text-end pe-3">
+            <a href="{% url 'platform:customer_detail' c.pk %}"
+               class="btn btn-sm btn-outline-secondary" title="View profile">
+              <i class="bi bi-eye"></i>
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="card-footer bg-white border-0 small text-muted py-2 px-3">
+    {{ customers|length }} customer{{ customers|length|pluralize }} shown
+  </div>
+  {% else %}
+  <div class="text-center py-5 text-muted">
+    <i class="bi bi-people fs-1 d-block mb-2 opacity-25"></i>
+    <div class="fw-semibold text-dark mb-1">No customers found</div>
+    <div class="small">
+      {% if q or tenant_filter or credit_filter %}
+        Try adjusting your filters.
+      {% else %}
+        No customers have been registered across any tenant yet.
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

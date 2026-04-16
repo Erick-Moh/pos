@@ -19,7 +19,7 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 
 from tenants.models import Tenant
-from pos.models import Sale
+from pos.models import Sale, Customer
 from inventory.models import Product
 from settings_app.models import SystemSetting
 from .decorators import staff_required
@@ -350,3 +350,65 @@ def platform_mark_all_read(request):
     """Mark all platform admin notifications as read."""
     Notification.objects.filter(recipient='platform', is_read=False).update(is_read=True)
     return JsonResponse({'ok': True})
+
+
+# ════════════════════════════════════════════════════════════════════════
+#  PLATFORM ADMIN — CUSTOMER DIRECTORY
+# ════════════════════════════════════════════════════════════════════════
+
+@staff_required
+def all_customers(request):
+    """
+    Platform-wide customer directory — see all customers across all tenants.
+    Supports filtering by tenant and searching by name/phone/email.
+    """
+    q = request.GET.get('q', '').strip()
+    tenant_filter = request.GET.get('tenant', '').strip()
+    credit_filter = request.GET.get('credit', '').strip()
+
+    customers = Customer.objects.filter(is_active=True).select_related('tenant').order_by('name')
+
+    if q:
+        customers = customers.filter(
+            Q(name__icontains=q) | Q(phone__icontains=q) | Q(email__icontains=q)
+        )
+    if tenant_filter:
+        customers = customers.filter(tenant__id=tenant_filter)
+    if credit_filter == 'yes':
+        customers = customers.filter(is_credit_allowed=True)
+    elif credit_filter == 'no':
+        customers = customers.filter(is_credit_allowed=False)
+
+    tenants = Tenant.objects.filter(is_active=True).order_by('name')
+    total_count = Customer.objects.filter(is_active=True).count()
+    credit_count = Customer.objects.filter(is_active=True, is_credit_allowed=True).count()
+
+    return render(request, 'platform/customers.html', {
+        'customers': customers,
+        'tenants': tenants,
+        'q': q,
+        'tenant_filter': tenant_filter,
+        'credit_filter': credit_filter,
+        'total_count': total_count,
+        'credit_count': credit_count,
+    })
+
+
+@staff_required
+def customer_detail_admin(request, pk):
+    """Platform admin view of a single customer's full profile + purchase history."""
+    customer = get_object_or_404(Customer, pk=pk)
+    sales = Sale.objects.filter(
+        customer=customer, status='completed'
+    ).order_by('-created_at')[:50]
+    sys = SystemSetting.get_settings(customer.tenant)
+    total_spent = Sale.objects.filter(
+        customer=customer, status='completed',
+        payment_method__in=['cash', 'mpesa', 'card', 'bank']
+    ).aggregate(t=Sum('total_amount'))['t'] or Decimal('0')
+    return render(request, 'platform/customer_detail.html', {
+        'customer': customer,
+        'sales': sales,
+        'total_spent': total_spent,
+        'currency': sys.currency_symbol,
+    })

@@ -1,86 +1,163 @@
 {% extends "base.html" %}
 {% load humanize %}
-{% block title %}{{ action }} Customer{% endblock %}
-{% block breadcrumb %}<i class="bi bi-person me-1"></i> {{ action }} Customer{% endblock %}
+{% block title %}{{ action }} Customer — {{ tenant.name }}{% endblock %}
+{% block breadcrumb %}
+  <a href="/{{ tenant_slug }}/pos/customers/" class="text-decoration-none text-muted">
+    <i class="bi bi-people me-1"></i>Customers
+  </a>
+  <i class="bi bi-chevron-right mx-1 small"></i>
+  {{ action }}
+{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-md-7 col-lg-6">
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-transparent border-0 pt-4 pb-0 px-4">
-                <h5 class="fw-bold mb-0">{{ action }} Customer</h5>
-                <p class="text-muted small">Only registered customers are eligible for credit (pay later) sales.</p>
+  <div class="col-md-8 col-lg-7">
+
+    <div class="card border-0 shadow-sm" style="border-radius:16px;overflow:hidden;">
+
+      <!-- Card header -->
+      <div class="card-header border-0 py-4 px-4"
+           style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;">
+        <div class="d-flex align-items-center gap-3">
+          <div style="background:rgba(255,255,255,.18);border-radius:10px;width:44px;height:44px;
+                      display:flex;align-items:center;justify-content:center;">
+            <i class="bi bi-person{% if action == 'Edit' %}-check{% else %}-plus{% endif %} fs-5"></i>
+          </div>
+          <div>
+            <h5 class="mb-0 fw-bold">{{ action }} Customer</h5>
+            <div class="small opacity-75">
+              {% if action == 'Create' %}
+                Only <strong>Name</strong> is required — all other fields are optional.
+              {% else %}
+                Update {{ customer.name }}'s profile.
+              {% endif %}
             </div>
-            <div class="card-body px-4 pb-4">
-                <form method="post">
-                    {% csrf_token %}
-
-                    <div class="mb-3">
-                        <label class="form-label fw-medium">Full Name <span class="text-danger">*</span></label>
-                        <input type="text" name="name" class="form-control"
-                               value="{{ customer.name|default:'' }}" required placeholder="e.g. Jane Wanjiru">
-                    </div>
-
-                    <div class="row g-3 mb-3">
-                        <div class="col-sm-6">
-                            <label class="form-label fw-medium">Phone</label>
-                            <input type="tel" name="phone" class="form-control"
-                                   value="{{ customer.phone|default:'' }}" placeholder="+254 7XX XXX XXX">
-                        </div>
-                        <div class="col-sm-6">
-                            <label class="form-label fw-medium">Email</label>
-                            <input type="email" name="email" class="form-control"
-                                   value="{{ customer.email|default:'' }}" placeholder="jane@example.com">
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label fw-medium">KRA PIN</label>
-                        <input type="text" name="kra_pin" class="form-control"
-                               value="{{ customer.kra_pin|default:'' }}" placeholder="A012345678X">
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label fw-medium">Address</label>
-                        <textarea name="address" class="form-control" rows="2"
-                                  placeholder="Physical address or town">{{ customer.address|default:'' }}</textarea>
-                    </div>
-
-                    <hr class="my-3">
-                    <h6 class="fw-semibold mb-3"><i class="bi bi-credit-card-2-back me-2 text-warning"></i>Credit Settings</h6>
-
-                    <div class="form-check form-switch mb-3">
-                        <input class="form-check-input" type="checkbox" id="is_credit_allowed"
-                               name="is_credit_allowed" {% if customer.is_credit_allowed %}checked{% endif %}>
-                        <label class="form-check-label fw-medium" for="is_credit_allowed">
-                            Allow Credit (Pay Later) Purchases
-                        </label>
-                        <div class="form-text">Walk-in customers <strong>cannot</strong> use credit. Only registered customers with this option enabled.</div>
-                    </div>
-
-                    <div class="mb-3" id="credit_limit_section" {% if not customer.is_credit_allowed %}style="display:none"{% endif %}>
-                        <label class="form-label fw-medium">Credit Limit ({{ currency }})</label>
-                        <input type="number" name="credit_limit" class="form-control"
-                               value="{{ customer.credit_limit|default:'0' }}"
-                               min="0" step="100" placeholder="0">
-                        <div class="form-text">Set to 0 for no limit (unlimited credit).</div>
-                    </div>
-
-                    <div class="d-flex gap-2 mt-4">
-                        <button type="submit" class="btn btn-nexus">
-                            <i class="bi bi-check-lg me-1"></i>{{ action }} Customer
-                        </button>
-                        <a href="/{{ tenant_slug }}/pos/customers/" class="btn btn-outline-secondary">Cancel</a>
-                    </div>
-                </form>
-            </div>
+          </div>
         </div>
-    </div>
-</div>
+      </div>
 
+      <div class="card-body p-4">
+        <form method="post">
+          {% csrf_token %}
+
+          <!-- Name -->
+          <div class="mb-4">
+            <label class="form-label fw-semibold">
+              Full Name <span class="text-danger">*</span>
+            </label>
+            <input type="text" name="name" class="form-control form-control-lg"
+                   value="{{ customer.name|default:'' }}" required
+                   placeholder="e.g. Jane Wanjiru Kamau" autofocus>
+            <div class="form-text">This is the only required field.</div>
+          </div>
+
+          <!-- Phone + Email -->
+          <div class="row g-3 mb-3">
+            <div class="col-sm-6">
+              <label class="form-label fw-medium">Phone <span class="text-muted fw-normal">(optional)</span></label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-telephone text-muted"></i></span>
+                <input type="tel" name="phone" class="form-control"
+                       value="{{ customer.phone|default:'' }}" placeholder="+254 7XX XXX XXX">
+              </div>
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label fw-medium">Email <span class="text-muted fw-normal">(optional)</span></label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-envelope text-muted"></i></span>
+                <input type="email" name="email" class="form-control"
+                       value="{{ customer.email|default:'' }}" placeholder="jane@example.com">
+              </div>
+            </div>
+          </div>
+
+          <!-- KRA PIN + Address -->
+          <div class="row g-3 mb-3">
+            <div class="col-sm-6">
+              <label class="form-label fw-medium">KRA PIN <span class="text-muted fw-normal">(optional)</span></label>
+              <input type="text" name="kra_pin" class="form-control"
+                     value="{{ customer.kra_pin|default:'' }}"
+                     placeholder="A012345678X" style="font-family:monospace;">
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label fw-medium">Address <span class="text-muted fw-normal">(optional)</span></label>
+              <input type="text" name="address" class="form-control"
+                     value="{{ customer.address|default:'' }}" placeholder="Town or physical address">
+            </div>
+          </div>
+
+          <!-- Notes -->
+          <div class="mb-4">
+            <label class="form-label fw-medium">Notes <span class="text-muted fw-normal">(optional)</span></label>
+            <textarea name="notes" class="form-control" rows="2"
+                      placeholder="Internal notes about this customer (not visible to customer)">{{ customer.notes|default:'' }}</textarea>
+          </div>
+
+          <!-- Credit settings - only admins can change -->
+          {% if user.is_admin_role %}
+          <div class="rounded-3 p-3 mb-4" style="background:#fffbeb;border:1px solid #fde68a;">
+            <h6 class="fw-semibold mb-3">
+              <i class="bi bi-credit-card-2-back me-2 text-warning"></i>Credit Settings
+              <span class="badge bg-warning text-dark ms-1" style="font-size:.65rem;">Admin Only</span>
+            </h6>
+
+            <div class="form-check form-switch mb-3">
+              <input class="form-check-input" type="checkbox" id="is_credit_allowed"
+                     name="is_credit_allowed"
+                     {% if customer.is_credit_allowed %}checked{% endif %}>
+              <label class="form-check-label fw-medium" for="is_credit_allowed">
+                Allow Credit (Pay Later) Purchases
+              </label>
+              <div class="form-text">
+                Walk-in customers <strong>cannot</strong> use credit. Only registered customers with this enabled.
+              </div>
+            </div>
+
+            <div id="creditLimitGroup" class="{% if not customer.is_credit_allowed %}d-none{% endif %}">
+              <label class="form-label fw-medium">Credit Limit (KES)</label>
+              <div class="input-group" style="max-width:200px;">
+                <span class="input-group-text">KES</span>
+                <input type="number" name="credit_limit" class="form-control"
+                       value="{{ customer.credit_limit|default:'0' }}"
+                       min="0" step="100" placeholder="0">
+              </div>
+              <div class="form-text">Set to <strong>0</strong> for unlimited credit.</div>
+            </div>
+          </div>
+          {% else %}
+          {% if customer.is_credit_allowed %}
+          <div class="alert alert-success d-flex align-items-center gap-2 py-2 mb-4">
+            <i class="bi bi-check-circle-fill"></i>
+            <span class="small">Credit purchases are enabled for this customer.</span>
+          </div>
+          {% endif %}
+          {% endif %}
+
+          <!-- Actions -->
+          <div class="d-flex gap-2 justify-content-end">
+            <a href="{% if customer %}/{{ tenant_slug }}/pos/customers/{{ customer.pk }}/{% else %}/{{ tenant_slug }}/pos/customers/{% endif %}"
+               class="btn btn-light fw-medium">Cancel</a>
+            <button type="submit" class="btn btn-nexus fw-semibold px-4">
+              <i class="bi bi-{% if action == 'Create' %}person-plus{% else %}check-lg{% endif %} me-1"></i>
+              {{ action }} Customer
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
 <script>
-document.getElementById('is_credit_allowed').addEventListener('change', function () {
-    document.getElementById('credit_limit_section').style.display = this.checked ? 'block' : 'none';
-});
+  const toggle = document.getElementById('is_credit_allowed');
+  const limitGroup = document.getElementById('creditLimitGroup');
+  if (toggle) {
+    toggle.addEventListener('change', () => {
+      limitGroup.classList.toggle('d-none', !toggle.checked);
+    });
+  }
 </script>
 {% endblock %}

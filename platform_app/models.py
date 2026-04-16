@@ -1,10 +1,12 @@
 """
 platform_app/models.py
-Platform-level models: in-system notifications for tenants and platform admins.
+Platform-level models: in-system notifications for tenants and platform admins,
+and tenant payment records for subscription billing.
 """
 
 from django.db import models
 from django.utils import timezone
+import calendar
 
 
 class Notification(models.Model):
@@ -108,3 +110,75 @@ class Notification(models.Model):
             message=message,
             action_url=action_url,
         )
+
+
+# ════════════════════════════════════════════════════════════════════════════════
+#  TENANT PAYMENT
+# ════════════════════════════════════════════════════════════════════════════════
+
+class TenantPayment(models.Model):
+    """
+    Records each monthly maintenance fee payment made by a tenant.
+
+    Carry-forward logic (enforced in billing_success view):
+      - If the tenant's last payment already covers the current month,
+        the new payment is applied to the following month automatically.
+    """
+
+    PAYMENT_METHOD_CHOICES = [
+        ('mpesa', 'M-Pesa'),
+        ('bank',  'Bank Transfer'),
+        ('cash',  'Cash'),
+        ('other', 'Other'),
+    ]
+
+    tenant = models.ForeignKey(
+        'tenants.Tenant',
+        on_delete=models.CASCADE,
+        related_name='payments',
+    )
+    year = models.IntegerField(
+        help_text='Calendar year the payment covers (e.g. 2026).'
+    )
+    month = models.IntegerField(
+        help_text='Month number the payment covers: 1=January … 12=December.'
+    )
+    amount = models.DecimalField(
+        max_digits=10, decimal_places=2,
+        help_text='Amount paid (KES).',
+    )
+    payment_method = models.CharField(
+        max_length=20, choices=PAYMENT_METHOD_CHOICES, default='mpesa',
+    )
+    mpesa_reference = models.CharField(
+        max_length=50, blank=True, null=True,
+        help_text='M-Pesa transaction code / confirmation number.',
+    )
+    paid_at = models.DateTimeField(auto_now_add=True)
+    notes = models.TextField(blank=True, null=True)
+    recorded_by = models.CharField(
+        max_length=100, blank=True, null=True,
+        help_text='Username of the user who recorded the payment.',
+    )
+
+    class Meta:
+        ordering = ['-year', '-month']
+        unique_together = [('tenant', 'year', 'month')]
+        verbose_name = 'Tenant Payment'
+        verbose_name_plural = 'Tenant Payments'
+        indexes = [
+            models.Index(fields=['tenant', 'year', 'month']),
+        ]
+
+    def __str__(self):
+        return f'{self.tenant.name} — {self.month_name} {self.year} (KES {self.amount})'
+
+    @property
+    def month_name(self):
+        """Full month name, e.g. 'April'."""
+        return calendar.month_name[self.month]
+
+    @property
+    def month_abbr(self):
+        """Abbreviated month name, e.g. 'Apr'."""
+        return calendar.month_abbr[self.month]

@@ -267,3 +267,30 @@ status.md
 setup.py
 config.json
 staticfiles/
+
+# ── Print Agent ──────────────────────────────────────────────────────────────
+# The local print agent is a standalone project — built locally and distributed
+# to cashier machines as a compiled exe/binary. It never runs on the server.
+# Ignore the entire directory so nothing in it is ever pushed to the cloud.
+print_agent/
+
+# ── OS / Editor ──────────────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# VS Code
+.vscode/
+
+# JetBrains / PyCharm
+.idea/
+
+# ── Local dev overrides ───────────────────────────────────────────────────────
+local_settings.py
+*.local.py
+

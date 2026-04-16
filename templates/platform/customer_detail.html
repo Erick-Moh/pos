@@ -1,0 +1,196 @@
+{% extends "platform/base.html" %}
+{% load humanize %}
+{% block title %}{{ customer.name }} — Customer Detail{% endblock %}
+
+{% block content %}
+<style>
+  .profile-header {
+    background: linear-gradient(135deg, #0f172a, #1e3a5f);
+    border-radius: 14px; color: #fff; padding: 1.75rem 2rem; margin-bottom: 1.5rem;
+  }
+  .profile-avatar {
+    width: 64px; height: 64px; border-radius: 50%;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: #fff; font-size: 1.6rem; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    border: 3px solid rgba(255,255,255,.2);
+  }
+  .info-chip {
+    display:inline-flex; align-items:center; gap:.35rem;
+    background:rgba(255,255,255,.12); color:rgba(255,255,255,.85);
+    border-radius:999px; padding:.2rem .7rem; font-size:.8rem;
+  }
+  .detail-row { display:flex; justify-content:space-between; padding:.65rem 0; border-bottom:1px solid #f1f5f9; font-size:.88rem; }
+  .detail-row:last-child { border-bottom:none; }
+  .detail-label { color:#6b7280; }
+  .detail-value { font-weight:600; color:#111827; }
+  .p-table thead th {
+    background:#f8fafc; font-size:.72rem; text-transform:uppercase;
+    letter-spacing:.05em; color:#64748b; padding:.75rem 1rem;
+    border-bottom:2px solid #e2e8f0; font-weight:600;
+  }
+  .p-table tbody td { padding:.8rem 1rem; border-bottom:1px solid #f1f5f9; font-size:.88rem; }
+  .p-table tbody tr:last-child td { border-bottom:none; }
+</style>
+
+<a href="{% url 'platform:all_customers' %}" class="btn btn-sm btn-outline-secondary mb-3">
+  <i class="bi bi-arrow-left me-1"></i>Back to Customers
+</a>
+
+<!-- Profile header -->
+<div class="profile-header">
+  <div class="d-flex align-items-center gap-3 mb-3">
+    <div class="profile-avatar">{{ customer.name.0|upper }}</div>
+    <div>
+      <h4 class="fw-bold mb-1">{{ customer.name }}</h4>
+      <div class="d-flex flex-wrap gap-2">
+        {% if customer.phone %}
+        <span class="info-chip"><i class="bi bi-telephone"></i> {{ customer.phone }}</span>
+        {% endif %}
+        {% if customer.email %}
+        <span class="info-chip"><i class="bi bi-envelope"></i> {{ customer.email }}</span>
+        {% endif %}
+        {% if customer.tenant %}
+        <span class="info-chip">
+          <i class="bi bi-building"></i>
+          <a href="{% url 'platform:tenant_detail' customer.tenant.pk %}"
+             class="text-white text-decoration-none">{{ customer.tenant.name }}</a>
+        </span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- Left: Sales -->
+  <div class="col-lg-8">
+    <div class="card border-0 shadow-sm mb-4" style="border-radius:12px;overflow:hidden;">
+      <div class="card-header bg-white border-0 py-3 px-4 d-flex justify-content-between align-items-center">
+        <h6 class="fw-semibold mb-0">Purchase History</h6>
+        <span class="badge bg-light text-secondary">{{ sales|length }} records</span>
+      </div>
+      {% if sales %}
+      <div class="table-responsive">
+        <table class="table p-table mb-0">
+          <thead>
+            <tr>
+              <th class="ps-3">Date</th>
+              <th>Sale #</th>
+              <th class="text-center">Method</th>
+              <th class="text-end">Amount</th>
+              <th class="text-center">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for sale in sales %}
+            <tr>
+              <td class="ps-3 text-muted">{{ sale.created_at|date:"d M Y, H:i" }}</td>
+              <td class="fw-medium">#{{ sale.pk }}</td>
+              <td class="text-center">
+                <span class="badge bg-light text-secondary">{{ sale.get_payment_method_display }}</span>
+              </td>
+              <td class="text-end fw-semibold">{{ currency }} {{ sale.total_amount|floatformat:0|intcomma }}</td>
+              <td class="text-center">
+                {% if sale.payment_method == 'credit' %}
+                  {% if sale.credit_paid %}
+                    <span class="badge" style="background:#dcfce7;color:#15803d;">Paid</span>
+                  {% else %}
+                    <span class="badge" style="background:#fee2e2;color:#b91c1c;">Unpaid</span>
+                  {% endif %}
+                {% else %}
+                  <span class="badge" style="background:#dcfce7;color:#15803d;">Paid</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="text-center py-5 text-muted">
+        <i class="bi bi-bag-x fs-2 d-block mb-2 opacity-25"></i>
+        No purchases recorded yet.
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Right: Profile info -->
+  <div class="col-lg-4">
+    <!-- Details card -->
+    <div class="card border-0 shadow-sm mb-3" style="border-radius:12px;">
+      <div class="card-header bg-white border-0 pt-3 pb-0 px-3">
+        <h6 class="fw-semibold mb-0"><i class="bi bi-person-badge me-2 text-primary"></i>Profile</h6>
+      </div>
+      <div class="card-body px-3 pb-3">
+        <div class="detail-row">
+          <span class="detail-label">Full Name</span>
+          <span class="detail-value">{{ customer.name }}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Phone</span>
+          <span class="detail-value">{{ customer.phone|default:"—" }}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Email</span>
+          <span class="detail-value">{{ customer.email|default:"—" }}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">KRA PIN</span>
+          <span class="detail-value" style="font-family:monospace;">{{ customer.kra_pin|default:"—" }}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Address</span>
+          <span class="detail-value">{{ customer.address|default:"—" }}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Registered</span>
+          <span class="detail-value">{{ customer.created_at|date:"d M Y" }}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Total Spent</span>
+          <span class="detail-value text-success">{{ currency }} {{ total_spent|floatformat:0|intcomma }}</span>
+        </div>
+        {% if customer.notes %}
+        <div class="detail-row" style="flex-direction:column;gap:.25rem;">
+          <span class="detail-label">Notes</span>
+          <span class="small text-muted" style="white-space:pre-wrap;">{{ customer.notes }}</span>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Credit card -->
+    <div class="card border-0 shadow-sm" style="border-radius:12px;">
+      <div class="card-header bg-white border-0 pt-3 pb-0 px-3">
+        <h6 class="fw-semibold mb-0"><i class="bi bi-credit-card-2-back me-2 text-warning"></i>Credit Account</h6>
+      </div>
+      <div class="card-body px-3 pb-3">
+        <div class="detail-row">
+          <span class="detail-label">Credit Status</span>
+          {% if customer.is_credit_allowed %}
+            <span class="badge" style="background:#dcfce7;color:#15803d;">Enabled</span>
+          {% else %}
+            <span class="badge" style="background:#f3f4f6;color:#6b7280;">Disabled</span>
+          {% endif %}
+        </div>
+        {% if customer.is_credit_allowed %}
+        <div class="detail-row">
+          <span class="detail-label">Credit Limit</span>
+          <span class="detail-value">
+            {% if customer.credit_limit == 0 %}Unlimited{% else %}{{ currency }} {{ customer.credit_limit|floatformat:0|intcomma }}{% endif %}
+          </span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Outstanding</span>
+          <span class="detail-value {% if customer.outstanding_balance > 0 %}text-danger{% else %}text-success{% endif %}">
+            {{ currency }} {{ customer.outstanding_balance|floatformat:0|intcomma }}
+          </span>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

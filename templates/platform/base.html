@@ -193,12 +193,16 @@
 
             <div class="p-nav-section">Clients</div>
             <a href="{% url 'platform:tenant_list' %}"
-               class="p-nav-link {% if 'tenant' in request.resolver_match.url_name %}active{% endif %}">
+               class="p-nav-link {% if 'tenant' in request.resolver_match.url_name and 'customer' not in request.resolver_match.url_name %}active{% endif %}">
                 <i class="bi bi-buildings"></i> All Clients
             </a>
             <a href="{% url 'platform:tenant_create' %}"
                class="p-nav-link">
                 <i class="bi bi-plus-circle"></i> Add Client
+            </a>
+            <a href="{% url 'platform:all_customers' %}"
+               class="p-nav-link {% if 'customer' in request.resolver_match.url_name %}active{% endif %}">
+                <i class="bi bi-people"></i> Customers
             </a>
 
             <div class="p-nav-section">Platform</div>

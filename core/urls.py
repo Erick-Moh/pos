@@ -18,6 +18,18 @@ tenant_urlpatterns = [
     path('settings/', include('settings_app.urls', namespace='settings_app')),
 ]
 
+from pos import print_api as pos_print_api
+
+# ── Global print agent API (token-auth, no tenant scope) ─────────────────────
+# These are accessed by the local print agent using only its device token.
+print_api_patterns = [
+    path('api/print/heartbeat/',                     pos_print_api.heartbeat,  name='print_heartbeat'),
+    path('api/print/jobs/',                          pos_print_api.poll_jobs,  name='print_poll'),
+    path('api/print/jobs/<int:job_id>/ack/',         pos_print_api.job_ack,    name='print_ack'),
+    path('api/print/jobs/<int:job_id>/done/',        pos_print_api.job_done,   name='print_done'),
+    path('api/print/jobs/<int:job_id>/fail/',        pos_print_api.job_fail,   name='print_fail'),
+]
+
 urlpatterns = [
     path('django-admin/', admin.site.urls),
     path('platform/', include('platform_app.urls', namespace='platform')),
@@ -25,7 +37,7 @@ urlpatterns = [
     path('service-worker.js', service_worker),
     path('<slug:tenant_slug>/manifest.json', manifest),
     path('<slug:tenant_slug>/', include((tenant_urlpatterns, 'tenant'), namespace='tenant')),
-]
+] + print_api_patterns
 
 handler404 = 'core.views.error_404'
 handler500 = 'core.views.error_500'

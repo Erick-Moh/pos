@@ -112,8 +112,13 @@
   <!-- Title -->
   <h2 class="success-title">Payment Successful!</h2>
   <p class="success-sub">
-    Your GetCore subscription has been renewed. Thank you for choosing GetCore POS
-    to power <strong>{{ tenant.name }}</strong>.
+    {% if paid_month_name %}
+      Your GetCore subscription for <strong>{{ paid_month_name }} {{ paid_year }}</strong> has been confirmed.
+      Thank you for choosing GetCore POS to power <strong>{{ tenant.name }}</strong>.
+    {% else %}
+      Your GetCore subscription has been renewed. Thank you for choosing GetCore POS
+      to power <strong>{{ tenant.name }}</strong>.
+    {% endif %}
   </p>
 
   <!-- Confetti dots -->
@@ -140,6 +145,16 @@
       <span class="receipt-label">Plan</span>
       <span class="receipt-value">{{ tenant.get_plan_display }}</span>
     </div>
+    {% if paid_month_name %}
+    <div class="receipt-row">
+      <span class="receipt-label">Covers Month</span>
+      <span class="receipt-value">
+        <span class="badge" style="background:#dcfce7;color:#15803d;font-weight:600;">
+          <i class="bi bi-calendar-check me-1"></i>{{ paid_month_name }} {{ paid_year }}
+        </span>
+      </span>
+    </div>
+    {% endif %}
     <div class="receipt-row">
       <span class="receipt-label">Amount Paid</span>
       <span class="receipt-value amount">KES {{ tenant.monthly_fee|floatformat:0|intcomma }}</span>
@@ -155,6 +170,12 @@
       <span class="receipt-label">Date</span>
       <span class="receipt-value">{% now "d M Y, H:i" %}</span>
     </div>
+    {% if next_due_date %}
+    <div class="receipt-row">
+      <span class="receipt-label">Next Payment Due</span>
+      <span class="receipt-value">{{ next_due_date|date:"d M Y" }}</span>
+    </div>
+    {% endif %}
     <div class="receipt-row">
       <span class="receipt-label">Status</span>
       <span class="receipt-value">
@@ -165,11 +186,16 @@
     </div>
   </div>
 
-  <!-- CTA -->
-  <a href="/{{ tenant_slug }}/pos/" class="btn-dashboard">
-    <i class="bi bi-speedometer2"></i>
-    Go to Dashboard
-  </a>
+  <!-- CTAs -->
+  <div class="d-flex gap-2 justify-content-center flex-wrap">
+    <a href="/{{ tenant_slug }}/settings/billing/history/" class="btn btn-outline-secondary fw-semibold" style="border-radius:12px;padding:12px 24px;">
+      <i class="bi bi-receipt me-1"></i>View Billing History
+    </a>
+    <a href="/{{ tenant_slug }}/pos/" class="btn-dashboard">
+      <i class="bi bi-speedometer2"></i>
+      Go to Dashboard
+    </a>
+  </div>
 
   <div class="mt-4">
     <p class="small text-muted">
@@ -177,7 +203,7 @@
       <strong>{{ tenant.owner_email|default:"your registered email" }}</strong>.
     </p>
     <p class="small text-muted mb-0">
-      Questions? <a href="mailto:support@getcore.co.ke" class="text-decoration-none fw-medium">support@getcore.co.ke</a>
+      Questions? <a href="mailto:hello@getcore.co.ke" class="text-decoration-none fw-medium">hello@getcore.co.ke</a>
     </p>
   </div>
 

@@ -199,6 +199,11 @@
                     <i class="bi bi-boxes me-2"></i>Inventory
                 </a>
             </li>
+            <li class="nav-item mb-1">
+                <a href="/{{ tenant.slug }}/pos/customers/" class="nav-link text-white {% if 'customer' in request.resolver_match.url_name|default:'' %}active{% endif %}">
+                    <i class="bi bi-people me-2"></i>Customers
+                </a>
+            </li>
 
             {% if user.is_admin_role %}
             <hr class="border-white opacity-25 my-2">
@@ -221,10 +226,9 @@
             </li>
             <li class="nav-item mb-1">
                 <a href="/{{ tenant.slug }}/settings/billing/"
-                   class="nav-link text-white {% if request.resolver_match.url_name == 'billing_checkout' %}active{% endif %}">
+                   class="nav-link text-white {% if request.resolver_match.url_name == 'billing_checkout' or request.resolver_match.url_name == 'billing_success' or request.resolver_match.url_name == 'billing_history' %}active{% endif %}">
                     <i class="bi bi-credit-card me-2"></i>Billing
-                    {% if tenant.trial_ends_on %}
-                    {% now "Y-m-d" as today_str %}
+                    {% if tenant.plan == 'trial' and tenant.trial_ends_on %}
                     <span class="badge bg-warning text-dark ms-auto" style="font-size:9px;">Trial</span>
                     {% endif %}
                 </a>

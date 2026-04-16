@@ -18,6 +18,11 @@ def generate_invoice_number():
     return f'INV-{today}-{short_uuid}'
 
 
+def generate_device_token():
+    """Generate a unique token for a print device."""
+    return uuid.uuid4().hex
+
+
 class Customer(models.Model):
     """Optional customer record for loyalty / credit tracking."""
     tenant = models.ForeignKey(
@@ -33,6 +38,7 @@ class Customer(models.Model):
     email = models.EmailField(blank=True, null=True)
     kra_pin = models.CharField(max_length=30, blank=True, null=True, verbose_name='Customer KRA PIN')
     address = models.TextField(blank=True, null=True)
+    notes = models.TextField(blank=True, null=True, help_text='Internal notes about this customer.')
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -249,3 +255,136 @@ class SaleItem(models.Model):
         # Calculate line total
         self.line_total = (self.unit_price * self.quantity) - self.discount_amount
         super().save(*args, **kwargs)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#  PRINT DEVICE + PRINT JOB  (local print agent bridge)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class PrintDevice(models.Model):
+    """
+    Represents one installation of the GetCore Print Agent on a local computer.
+    Each device holds a unique token used to authenticate polling requests.
+    """
+    tenant = models.ForeignKey(
+        'tenants.Tenant',
+        on_delete=models.CASCADE,
+        related_name='print_devices',
+    )
+    name = models.CharField(
+        max_length=100,
+        help_text='Friendly name, e.g. "Front Counter Printer" or "Kitchen Printer".',
+    )
+    token = models.CharField(
+        max_length=64,
+        unique=True,
+        default=generate_device_token,
+        help_text='Secret token the local agent uses to authenticate. Never share this.',
+    )
+    printer_name = models.CharField(
+        max_length=200,
+        blank=True, null=True,
+        help_text='Name of the locally detected printer as reported by the agent.',
+    )
+    os_info = models.CharField(
+        max_length=100,
+        blank=True, null=True,
+        help_text='OS string reported by the agent, e.g. "Windows 11 Home".',
+    )
+    agent_version = models.CharField(
+        max_length=20, blank=True, null=True,
+        help_text='Version of the GetCore Print Agent installed.',
+    )
+    is_online = models.BooleanField(
+        default=False,
+        help_text='True when the agent sent a heartbeat within the last 90 seconds.',
+    )
+    last_seen = models.DateTimeField(
+        null=True, blank=True,
+        help_text='Timestamp of the last heartbeat received from this device.',
+    )
+    is_active = models.BooleanField(
+        default=True,
+        help_text='Disable to stop this device from receiving print jobs.',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['tenant', 'name']
+        verbose_name = 'Print Device'
+        verbose_name_plural = 'Print Devices'
+
+    def __str__(self):
+        status = 'online' if self.is_online else 'offline'
+        return f'{self.name} ({self.tenant.name}) — {status}'
+
+    def refresh_online_status(self):
+        """Mark device offline if last heartbeat > 90 seconds ago."""
+        if self.last_seen:
+            age = (timezone.now() - self.last_seen).total_seconds()
+            if age > 90 and self.is_online:
+                self.is_online = False
+                self.save(update_fields=['is_online'])
+        return self.is_online
+
+    @property
+    def is_ready(self):
+        """True when the agent is online AND has detected a printer."""
+        self.refresh_online_status()
+        return self.is_online and bool(self.printer_name)
+
+
+class PrintJob(models.Model):
+    """
+    A receipt print job queued by Django and consumed by the local Print Agent.
+    """
+    STATUS_CHOICES = [
+        ('pending',  'Pending'),
+        ('sent',     'Sent to Agent'),
+        ('printed',  'Printed'),
+        ('failed',   'Failed'),
+        ('cancelled','Cancelled'),
+    ]
+
+    device = models.ForeignKey(
+        PrintDevice,
+        on_delete=models.CASCADE,
+        related_name='print_jobs',
+    )
+    sale = models.ForeignKey(
+        'pos.Sale',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='print_jobs',
+        help_text='The sale this receipt belongs to (optional).',
+    )
+    # The receipt content sent to the agent.
+    # Stored as pre-formatted text so the agent can print without any rendering.
+    receipt_text = models.TextField(
+        help_text='Pre-formatted plain text receipt ready to send to the printer.',
+    )
+    copies = models.PositiveSmallIntegerField(
+        default=1,
+        help_text='Number of copies to print.',
+    )
+    status = models.CharField(
+        max_length=20, choices=STATUS_CHOICES, default='pending',
+    )
+    error_message = models.TextField(
+        blank=True, null=True,
+        help_text='Error detail if printing failed.',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    sent_at = models.DateTimeField(null=True, blank=True)
+    printed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Print Job'
+        verbose_name_plural = 'Print Jobs'
+        indexes = [
+            models.Index(fields=['device', 'status', 'created_at']),
+        ]
+
+    def __str__(self):
+        return f'PrintJob #{self.pk} → {self.device.name} [{self.status}]'

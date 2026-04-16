@@ -273,10 +273,39 @@ def void_sale(request, tenant_slug, pk):
 def customer_list(request, tenant_slug):
     """List all customers with outstanding balances highlighted."""
     tenant = get_tenant_or_404(request)
-    customers = Customer.objects.filter(tenant=tenant, is_active=True).order_by('name')
+    q = request.GET.get('q', '').strip()
+    customers = Customer.objects.filter(tenant=tenant, is_active=True)
+    if q:
+        customers = customers.filter(
+            Q(name__icontains=q) | Q(phone__icontains=q) | Q(email__icontains=q)
+        )
+    customers = customers.order_by('name')
     sys = SystemSetting.get_settings(tenant)
     return render(request, 'pos/customer_list.html', {
         'customers': customers,
+        'currency': sys.currency_symbol,
+        'tenant_slug': tenant_slug,
+        'q': q,
+    })
+
+
+@login_required_tenant
+def customer_detail(request, tenant_slug, pk):
+    """Customer profile page with sales history."""
+    tenant = get_tenant_or_404(request)
+    customer = get_object_or_404(Customer, pk=pk, tenant=tenant)
+    sys = SystemSetting.get_settings(tenant)
+    sales = Sale.objects.filter(
+        tenant=tenant, customer=customer, status='completed'
+    ).order_by('-created_at')[:50]
+    total_spent = Sale.objects.filter(
+        tenant=tenant, customer=customer, status='completed',
+        payment_method__in=['cash', 'mpesa', 'card', 'bank']
+    ).aggregate(t=Sum('total_amount'))['t'] or Decimal('0')
+    return render(request, 'pos/customer_detail.html', {
+        'customer': customer,
+        'sales': sales,
+        'total_spent': total_spent,
         'currency': sys.currency_symbol,
         'tenant_slug': tenant_slug,
     })
@@ -284,49 +313,80 @@ def customer_list(request, tenant_slug):
 
 @login_required_tenant
 def customer_create(request, tenant_slug):
-    """Create a new customer."""
+    """Create a new customer. Any tenant user can do this."""
     tenant = get_tenant_or_404(request)
     if request.method == 'POST':
         name = request.POST.get('name', '').strip()
         if not name:
             messages.error(request, 'Customer name is required.')
             return redirect('tenant:pos:customer_create', tenant_slug=tenant_slug)
-        credit_limit_raw = request.POST.get('credit_limit', '0') or '0'
-        Customer.objects.create(
+        try:
+            credit_limit_raw = Decimal(request.POST.get('credit_limit', '0') or '0')
+        except Exception:
+            credit_limit_raw = Decimal('0')
+        customer = Customer.objects.create(
             tenant=tenant,
             name=name,
             phone=request.POST.get('phone', '').strip() or None,
             email=request.POST.get('email', '').strip() or None,
             kra_pin=request.POST.get('kra_pin', '').strip() or None,
             address=request.POST.get('address', '').strip() or None,
+            notes=request.POST.get('notes', '').strip() or None,
             is_credit_allowed='is_credit_allowed' in request.POST,
-            credit_limit=Decimal(credit_limit_raw),
+            credit_limit=credit_limit_raw,
         )
-        messages.success(request, f'Customer "{name}" created.')
-        return redirect('tenant:pos:customer_list', tenant_slug=tenant_slug)
-    return render(request, 'pos/customer_form.html', {'action': 'Create', 'tenant_slug': tenant_slug})
+        messages.success(request, f'Customer "{name}" created successfully.')
+        return redirect('tenant:pos:customer_detail', tenant_slug=tenant_slug, pk=customer.pk)
+    return render(request, 'pos/customer_form.html', {
+        'action': 'Create',
+        'tenant_slug': tenant_slug,
+    })
 
 
 @login_required_tenant
 def customer_edit(request, tenant_slug, pk):
-    """Edit an existing customer including credit settings."""
+    """Edit an existing customer. Any tenant user can do this."""
     tenant = get_tenant_or_404(request)
     customer = get_object_or_404(Customer, pk=pk, tenant=tenant)
     if request.method == 'POST':
-        customer.name = request.POST.get('name', customer.name).strip()
+        name = request.POST.get('name', '').strip()
+        if not name:
+            messages.error(request, 'Customer name is required.')
+            return redirect('tenant:pos:customer_edit', tenant_slug=tenant_slug, pk=pk)
+        try:
+            credit_limit_raw = Decimal(request.POST.get('credit_limit', '0') or '0')
+        except Exception:
+            credit_limit_raw = Decimal('0')
+        customer.name = name
         customer.phone = request.POST.get('phone', '').strip() or None
         customer.email = request.POST.get('email', '').strip() or None
         customer.kra_pin = request.POST.get('kra_pin', '').strip() or None
         customer.address = request.POST.get('address', '').strip() or None
+        customer.notes = request.POST.get('notes', '').strip() or None
         customer.is_credit_allowed = 'is_credit_allowed' in request.POST
-        credit_limit_raw = request.POST.get('credit_limit', '0') or '0'
-        customer.credit_limit = Decimal(credit_limit_raw)
+        customer.credit_limit = credit_limit_raw
         customer.save()
         messages.success(request, f'Customer "{customer.name}" updated.')
-        return redirect('tenant:pos:customer_list', tenant_slug=tenant_slug)
+        return redirect('tenant:pos:customer_detail', tenant_slug=tenant_slug, pk=pk)
     return render(request, 'pos/customer_form.html', {
-        'action': 'Edit', 'customer': customer, 'tenant_slug': tenant_slug,
+        'action': 'Edit',
+        'customer': customer,
+        'tenant_slug': tenant_slug,
     })
+
+
+@login_required_tenant
+@admin_required
+@require_POST
+def customer_delete(request, tenant_slug, pk):
+    """Soft-delete (deactivate) a customer. Admin only."""
+    tenant = get_tenant_or_404(request)
+    customer = get_object_or_404(Customer, pk=pk, tenant=tenant)
+    name = customer.name
+    customer.is_active = False
+    customer.save(update_fields=['is_active'])
+    messages.success(request, f'Customer "{name}" has been deactivated.')
+    return redirect('tenant:pos:customer_list', tenant_slug=tenant_slug)
 
 
 # ════════════════════════════════════════════════════════════════════════

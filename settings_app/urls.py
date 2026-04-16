@@ -16,4 +16,5 @@ urlpatterns = [
     # ── Billing / Checkout ────────────────────────────────────────────
     path('billing/',                            views.billing_checkout,              name='billing_checkout'),
     path('billing/success/',                    views.billing_success,               name='billing_success'),
+    path('billing/history/',                    views.billing_history,               name='billing_history'),
 ]

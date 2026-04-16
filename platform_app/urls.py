@@ -29,4 +29,8 @@ urlpatterns = [
     path('notifications/',                              views.platform_notifications,             name='notifications'),
     path('notifications/<int:pk>/read/',               views.platform_mark_notification_read,    name='notification_read'),
     path('notifications/mark-all-read/',               views.platform_mark_all_read,             name='notifications_mark_all_read'),
+
+    # ── Customer Directory ────────────────────────────────────────────
+    path('customers/',                                  views.all_customers,                     name='all_customers'),
+    path('customers/<int:pk>/',                         views.customer_detail_admin,              name='customer_detail'),
 ]
