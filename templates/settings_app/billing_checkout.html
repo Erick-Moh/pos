@@ -1,0 +1,432 @@
+{% extends "base.html" %}
+{% load static humanize %}
+{% block title %}Pay Maintenance Fee — {{ tenant.name }}{% endblock %}
+{% block breadcrumb %}<i class="bi bi-credit-card me-1"></i> Billing & Subscription{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* ── Checkout page specific ── */
+  .checkout-wrapper {
+    max-width: 940px;
+    margin: 0 auto;
+  }
+  .checkout-card {
+    border-radius: 20px;
+    border: none;
+    box-shadow: 0 4px 32px rgba(0,0,0,.08);
+    overflow: hidden;
+  }
+  .checkout-left {
+    background: linear-gradient(145deg, #0f172a 0%, #1e293b 100%);
+    padding: 40px 36px;
+    color: white;
+    min-height: 100%;
+  }
+  .checkout-right {
+    padding: 40px 36px;
+    background: #fff;
+  }
+  .plan-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255,255,255,.1);
+    border: 1px solid rgba(255,255,255,.15);
+    border-radius: 50px;
+    padding: 5px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .04em;
+    color: #e2e8f0;
+    margin-bottom: 24px;
+  }
+  .checkout-amount {
+    font-size: 3rem;
+    font-weight: 800;
+    letter-spacing: -.02em;
+    line-height: 1;
+    color: white;
+  }
+  .checkout-amount-sub {
+    color: #94a3b8;
+    font-size: 13px;
+    margin-top: 6px;
+  }
+  .feature-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 0;
+    border-bottom: 1px solid rgba(255,255,255,.07);
+    font-size: 13px;
+    color: #cbd5e1;
+  }
+  .feature-row:last-child { border-bottom: none; }
+  .feature-row i { color: #10b981; font-size: 1rem; flex-shrink: 0; }
+  .mpesa-btn {
+    background: #4bb543;
+    border: none;
+    color: white;
+    font-weight: 700;
+    font-size: 1rem;
+    padding: 14px 28px;
+    border-radius: 12px;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: all .2s;
+    text-decoration: none;
+    cursor: pointer;
+    letter-spacing: .02em;
+  }
+  .mpesa-btn:hover {
+    background: #3da036;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(75,181,67,.35);
+  }
+  .mpesa-logo {
+    height: 32px;
+    object-fit: contain;
+  }
+  .amount-input-group {
+    position: relative;
+  }
+  .amount-input-group input {
+    padding-left: 52px;
+    font-size: 1.3rem;
+    font-weight: 700;
+    border-radius: 12px;
+    border: 2px solid #e2e8f0;
+    height: 58px;
+    transition: border-color .15s;
+  }
+  .amount-input-group input:focus {
+    border-color: #4bb543;
+    box-shadow: 0 0 0 3px rgba(75,181,67,.12);
+    outline: none;
+  }
+  .amount-prefix {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-weight: 700;
+    color: #64748b;
+    font-size: 1rem;
+    z-index: 2;
+    pointer-events: none;
+  }
+  .phone-input-group input {
+    border-radius: 12px;
+    border: 2px solid #e2e8f0;
+    height: 52px;
+    font-size: 15px;
+    transition: border-color .15s;
+  }
+  .phone-input-group input:focus {
+    border-color: #4bb543;
+    box-shadow: 0 0 0 3px rgba(75,181,67,.12);
+    outline: none;
+  }
+  .security-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11.5px;
+    color: #94a3b8;
+  }
+  .security-row i { color: #10b981; }
+  .trial-banner {
+    background: linear-gradient(90deg, #fef3c7, #fde68a);
+    border-radius: 12px;
+    padding: 14px 18px;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .trial-banner i { color: #d97706; font-size: 1.2rem; }
+  .trial-banner-text { font-size: 13px; color: #92400e; font-weight: 500; }
+  .step-circle {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: rgba(16,185,129,.15);
+    border: 1px solid rgba(16,185,129,.3);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; color: #10b981;
+    flex-shrink: 0;
+  }
+  .divider-text {
+    position: relative;
+    text-align: center;
+    margin: 20px 0;
+  }
+  .divider-text::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0; right: 0;
+    height: 1px;
+    background: #e2e8f0;
+  }
+  .divider-text span {
+    position: relative;
+    background: white;
+    padding: 0 12px;
+    font-size: 12px;
+    color: #94a3b8;
+    font-weight: 500;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="checkout-wrapper">
+
+  <!-- Page Header -->
+  <div class="mb-4">
+    <h4 class="fw-bold mb-1">Subscription Payment</h4>
+    <p class="text-muted small mb-0">
+      Pay your GetCore monthly maintenance fee via M-Pesa to keep your account active.
+    </p>
+  </div>
+
+  {% if days_remaining is not None %}
+  <!-- Trial Banner -->
+  <div class="trial-banner">
+    <i class="bi bi-hourglass-split"></i>
+    <div class="trial-banner-text">
+      {% if days_remaining > 0 %}
+        Your free trial ends in <strong>{{ days_remaining }} day{{ days_remaining|pluralize }}</strong>
+        ({{ tenant.trial_ends_on|date:"d M Y" }}). Subscribe now to avoid any interruption.
+      {% elif days_remaining == 0 %}
+        <strong>Your trial expires today!</strong> Please make payment immediately to keep your account active.
+      {% else %}
+        <strong>Your trial has expired.</strong> Make payment now to restore full access to your account.
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="row g-0 checkout-card">
+
+    <!-- LEFT — Plan Summary -->
+    <div class="col-lg-5">
+      <div class="checkout-left h-100">
+        <div class="plan-badge">
+          <i class="bi bi-rocket-takeoff-fill text-success"></i>
+          GetCore POS — {{ tenant.get_plan_display }}
+        </div>
+
+        <div class="checkout-amount">KES {{ tenant.monthly_fee|floatformat:0|intcomma }}</div>
+        <div class="checkout-amount-sub">per month · billed monthly</div>
+
+        <hr style="border-color:rgba(255,255,255,.1);margin:28px 0;">
+
+        <p class="small fw-semibold text-white mb-3" style="letter-spacing:.04em;text-transform:uppercase;font-size:11px;color:#64748b !important;">
+          What's included
+        </p>
+
+        <div class="feature-row">
+          <i class="bi bi-check-circle-fill"></i>
+          Unlimited POS transactions
+        </div>
+        <div class="feature-row">
+          <i class="bi bi-check-circle-fill"></i>
+          Inventory & stock management
+        </div>
+        <div class="feature-row">
+          <i class="bi bi-check-circle-fill"></i>
+          Finance reports & analytics
+        </div>
+        <div class="feature-row">
+          <i class="bi bi-check-circle-fill"></i>
+          Unlimited staff accounts
+        </div>
+        <div class="feature-row">
+          <i class="bi bi-check-circle-fill"></i>
+          M-Pesa payment integration
+        </div>
+        <div class="feature-row">
+          <i class="bi bi-check-circle-fill"></i>
+          KRA eTIMS compliance ready
+        </div>
+        <div class="feature-row">
+          <i class="bi bi-check-circle-fill"></i>
+          Email & SMS support
+        </div>
+
+        <hr style="border-color:rgba(255,255,255,.1);margin:24px 0;">
+
+        <div class="d-flex align-items-center gap-3">
+          <div>
+            <div class="small text-muted" style="font-size:11px;">Account Ref</div>
+            <div class="fw-bold text-white" style="font-size:13px;">{{ tenant.reference_code }}</div>
+          </div>
+          <div class="ms-auto text-end">
+            <div class="small text-muted" style="font-size:11px;">Business</div>
+            <div class="fw-semibold text-white" style="font-size:12px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+              {{ tenant.name }}
+            </div>
+          </div>
+        </div>
+
+        {% if not tenant.installation_fee_paid %}
+        <div class="mt-4 p-3 rounded" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);">
+          <div class="small fw-semibold text-white mb-1">
+            <i class="bi bi-info-circle me-1 text-warning"></i>One-time installation fee
+          </div>
+          <div class="small text-muted">
+            A one-time setup fee of <strong class="text-white">KES 15,000</strong> is payable for new accounts.
+            Contact us to arrange this separately.
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- RIGHT — Payment Form -->
+    <div class="col-lg-7">
+      <div class="checkout-right">
+        <div class="d-flex align-items-center gap-3 mb-4">
+          <img src="{% static 'img/mpesa.jpeg' %}" alt="M-Pesa" class="mpesa-logo">
+          <div>
+            <div class="fw-bold" style="font-size:15px;">Pay via M-Pesa</div>
+            <div class="text-muted small">Lipa Na M-Pesa — STK Push</div>
+          </div>
+        </div>
+
+        <!-- How it works steps -->
+        <div class="mb-4">
+          <p class="small fw-semibold text-muted mb-2" style="text-transform:uppercase;letter-spacing:.04em;font-size:10.5px;">
+            How it works
+          </p>
+          <div class="d-flex align-items-start gap-3 mb-2">
+            <div class="step-circle">1</div>
+            <div class="small text-muted pt-1">Enter your <strong class="text-dark">M-Pesa phone number</strong> below.</div>
+          </div>
+          <div class="d-flex align-items-start gap-3 mb-2">
+            <div class="step-circle">2</div>
+            <div class="small text-muted pt-1">Click <strong class="text-dark">"Pay KES {{ tenant.monthly_fee|floatformat:0|intcomma }}"</strong> to receive a push notification.</div>
+          </div>
+          <div class="d-flex align-items-start gap-3">
+            <div class="step-circle">3</div>
+            <div class="small text-muted pt-1">Enter your <strong class="text-dark">M-Pesa PIN</strong> on your phone to complete payment.</div>
+          </div>
+        </div>
+
+        <div class="divider-text"><span>Enter payment details</span></div>
+
+        <!-- Payment Form -->
+        <form id="checkoutForm" method="post" action="#">
+          {% csrf_token %}
+          <input type="hidden" name="tenant_ref" value="{{ tenant.reference_code }}">
+          <input type="hidden" name="amount" value="{{ tenant.monthly_fee }}">
+
+          <div class="mb-3 phone-input-group">
+            <label class="form-label fw-semibold small">
+              M-Pesa Phone Number <span class="text-danger">*</span>
+            </label>
+            <div class="input-group">
+              <span class="input-group-text fw-semibold" style="border-radius:12px 0 0 12px;border:2px solid #e2e8f0;border-right:none;font-size:14px;">
+                🇰🇪 +254
+              </span>
+              <input type="tel"
+                     name="phone"
+                     class="form-control"
+                     style="border-radius:0 12px 12px 0;border:2px solid #e2e8f0;border-left:none;"
+                     placeholder="7XX XXX XXX"
+                     maxlength="9"
+                     value="{{ tenant.owner_phone|default:'' }}"
+                     required>
+            </div>
+            <div class="form-text">Use the phone number registered on your M-Pesa account.</div>
+          </div>
+
+          <!-- Amount Display -->
+          <div class="mb-4">
+            <label class="form-label fw-semibold small">Amount</label>
+            <div class="amount-input-group">
+              <span class="amount-prefix">KES</span>
+              <input type="text"
+                     class="form-control"
+                     value="{{ tenant.monthly_fee|floatformat:0|intcomma }}"
+                     readonly
+                     style="background:#f8fafc;cursor:default;">
+            </div>
+            <div class="form-text">Monthly maintenance fee — fixed amount.</div>
+          </div>
+
+          <!-- Pay Button — links to # (STK push integration added later) -->
+          <a href="#" class="mpesa-btn mb-3"
+             onclick="handlePay(event)">
+            <img src="{% static 'img/mpesa.jpeg' %}" alt="M-Pesa" style="height:22px;border-radius:4px;">
+            Pay KES {{ tenant.monthly_fee|floatformat:0|intcomma }} via M-Pesa
+          </a>
+
+          <!-- Security assurances -->
+          <div class="d-flex flex-wrap gap-3 justify-content-center mt-3">
+            <div class="security-row">
+              <i class="bi bi-shield-lock-fill"></i>
+              Secured by Safaricom
+            </div>
+            <div class="security-row">
+              <i class="bi bi-lock-fill"></i>
+              SSL Encrypted
+            </div>
+            <div class="security-row">
+              <i class="bi bi-patch-check-fill"></i>
+              GetCore Verified
+            </div>
+          </div>
+        </form>
+
+        <div class="divider-text mt-4"><span>Need help?</span></div>
+        <div class="text-center">
+          <p class="small text-muted mb-1">
+            Having trouble? Contact GetCore support:
+          </p>
+          <p class="small mb-0">
+            <a href="mailto:support@getcore.co.ke" class="text-decoration-none fw-medium">
+              <i class="bi bi-envelope me-1"></i>support@getcore.co.ke
+            </a>
+            &nbsp;&nbsp;
+            <a href="tel:+254700000000" class="text-decoration-none fw-medium">
+              <i class="bi bi-telephone me-1"></i>+254 700 000 000
+            </a>
+          </p>
+        </div>
+
+      </div>
+    </div>
+  </div><!-- /.row -->
+
+</div><!-- /.checkout-wrapper -->
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function handlePay(e) {
+    e.preventDefault();
+    const phone = document.querySelector('input[name="phone"]').value.trim();
+    if (!phone || phone.length < 9) {
+        alert('Please enter a valid M-Pesa phone number (9 digits after +254).');
+        return;
+    }
+    // TODO: Call M-Pesa STK Push API here
+    // For now, show a loading state and redirect to success page for UI demo
+    const btn = e.currentTarget;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Processing…';
+    btn.style.pointerEvents = 'none';
+    btn.style.opacity = '0.85';
+
+    // Simulate processing — replace with real STK push call later
+    setTimeout(() => {
+        window.location.href = '/{{ tenant_slug }}/settings/billing/success/';
+    }, 2000);
+}
+</script>
+{% endblock %}

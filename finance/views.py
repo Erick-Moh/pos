@@ -7,12 +7,12 @@ import calendar
 from django.shortcuts import render, redirect
 from users.decorators import login_required_tenant
 from django.contrib import messages
-from django.db.models import Sum, Count, Q
+from django.db.models import Sum, Count, Q, F
 from django.utils import timezone
 
 from users.decorators import admin_required
 from tenants.mixins import get_tenant_or_404
-from pos.models import Sale, SaleItem
+from pos.models import Sale, SaleItem, Customer
 from inventory.models import Product
 from settings_app.models import SystemSetting
 from .models import DailySummary, MonthlySummary
@@ -90,18 +90,35 @@ def daily_report(request, tenant_slug):
     except ValueError:
         target_date = timezone.now().date()
 
+    # ── Unpaid credit sales due on or before target_date ─────────────────
+    unpaid_overdue = Sale.objects.filter(
+        tenant=tenant,
+        payment_method='credit',
+        credit_paid=False,
+        credit_due_date__lte=target_date,
+        status='completed',
+    ).select_related('customer').order_by('credit_due_date')
+
     if request.method == 'POST':
-        summary = _build_daily_summary(tenant, target_date)
-        actual_cash = request.POST.get('actual_cash')
-        if actual_cash:
-            summary.actual_cash = Decimal(actual_cash)
-            summary.calculate_variance()
-        summary.notes = request.POST.get('notes', '')
-        summary.is_closed = True
-        summary.closed_by = request.user
-        summary.save()
-        messages.success(request, f'Day {target_date} closed.')
-        return redirect('tenant:finance:daily_report', tenant_slug=tenant_slug)
+        # Block close if there are overdue unpaid credit sales
+        if unpaid_overdue.exists() and not request.POST.get('force_close'):
+            messages.error(
+                request,
+                f'Cannot close day — there are {unpaid_overdue.count()} overdue unpaid credit sale(s). '
+                f'Settle them first or confirm force-close below.'
+            )
+        else:
+            summary = _build_daily_summary(tenant, target_date)
+            actual_cash = request.POST.get('actual_cash')
+            if actual_cash:
+                summary.actual_cash = Decimal(actual_cash)
+                summary.calculate_variance()
+            summary.notes = request.POST.get('notes', '')
+            summary.is_closed = True
+            summary.closed_by = request.user
+            summary.save()
+            messages.success(request, f'Day {target_date} closed.')
+            return redirect('tenant:finance:daily_report', tenant_slug=tenant_slug)
 
     summary = _build_daily_summary(tenant, target_date)
     sales = Sale.objects.filter(tenant=tenant, created_at__date=target_date, status='completed').select_related('served_by', 'customer')
@@ -113,6 +130,7 @@ def daily_report(request, tenant_slug):
     return render(request, 'finance/daily_report.html', {
         'summary': summary, 'sales': sales, 'top_products': top_products,
         'target_date': target_date, 'currency': sys.currency_symbol, 'tenant_slug': tenant_slug,
+        'unpaid_overdue': unpaid_overdue,
     })
 
 
@@ -179,4 +197,71 @@ def yearly_report(request, tenant_slug):
         'monthly_data': monthly_data, 'yearly_total': yearly_total,
         'yearly_cogs': yearly_cogs, 'yearly_profit': yearly_total - yearly_cogs,
         'currency': sys.currency_symbol, 'tenant_slug': tenant_slug,
+    })
+
+
+@login_required_tenant
+@admin_required
+def product_movement_report(request, tenant_slug):
+    """
+    Fast & Slow Movers report.
+    Shows products ranked by units sold for a given day / month / year.
+    """
+    tenant = get_tenant_or_404(request)
+    today = timezone.now().date()
+    period = request.GET.get('period', 'month')  # day | month | year
+
+    year = int(request.GET.get('year', today.year))
+    month = int(request.GET.get('month', today.month))
+    day_str = request.GET.get('date', str(today))
+    try:
+        target_date = date.fromisoformat(day_str)
+    except ValueError:
+        target_date = today
+
+    # ── Build the sale filter for the chosen period ───────────────────────
+    if period == 'day':
+        sale_filter = Q(sale__created_at__date=target_date, sale__tenant=tenant, sale__status='completed')
+        period_label = target_date.strftime('%A, %d %B %Y')
+    elif period == 'year':
+        sale_filter = Q(sale__created_at__year=year, sale__tenant=tenant, sale__status='completed')
+        period_label = str(year)
+    else:  # month (default)
+        sale_filter = Q(sale__created_at__year=year, sale__created_at__month=month,
+                        sale__tenant=tenant, sale__status='completed')
+        period_label = f'{calendar.month_name[month]} {year}'
+
+    # ── Aggregate product-level movement ──────────────────────────────────
+    product_movement = (
+        SaleItem.objects.filter(sale_filter)
+        .values('product_id', 'product_name')
+        .annotate(
+            total_qty=Sum('quantity'),
+            total_revenue=Sum('line_total'),
+            num_transactions=Count('sale', distinct=True),
+        )
+        .order_by('-total_qty')
+    )
+
+    # Separate fast (top half) and slow (bottom half) movers
+    movement_list = list(product_movement)
+    total_products = len(movement_list)
+    split = max(1, total_products // 2)
+    fast_movers = movement_list[:split]
+    slow_movers = list(reversed(movement_list[split:]))  # slowest first
+
+    sys = SystemSetting.get_settings(tenant)
+    return render(request, 'finance/product_movement_report.html', {
+        'period': period,
+        'period_label': period_label,
+        'target_date': target_date,
+        'year': year,
+        'month': month,
+        'fast_movers': fast_movers,
+        'slow_movers': slow_movers,
+        'total_products': total_products,
+        'years': list(range(today.year - 3, today.year + 1)),
+        'months': [(i, calendar.month_name[i]) for i in range(1, 13)],
+        'currency': sys.currency_symbol,
+        'tenant_slug': tenant_slug,
     })

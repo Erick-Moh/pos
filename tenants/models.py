@@ -8,6 +8,8 @@ Each tenant is a distinct business client with their own:
 """
 
 from django.db import models
+from django.utils import timezone
+from datetime import timedelta
 
 
 class Tenant(models.Model):
@@ -118,6 +120,19 @@ class Tenant(models.Model):
         help_text='Inactive tenants cannot log in.'
     )
     trial_ends_on = models.DateField(null=True, blank=True)
+    payment_due_date = models.DateField(
+        null=True, blank=True,
+        help_text='For paid plans: the date by which the next invoice must be settled. '
+                  'Account is deactivated automatically if payment is not received by this date.'
+    )
+    monthly_fee = models.DecimalField(
+        max_digits=10, decimal_places=2, default=2000,
+        help_text='Monthly maintenance fee (KES). Default: KES 2,000.'
+    )
+    installation_fee_paid = models.BooleanField(
+        default=False,
+        help_text='One-time installation fee of KES 15,000 has been paid.'
+    )
 
     # ── Timestamps ─────────────────────────────────────────────────────────
     created_at = models.DateTimeField(auto_now_add=True)
@@ -138,11 +153,15 @@ class Tenant(models.Model):
         return f'{self.name} ({self.slug})'
 
     def save(self, *args, **kwargs):
+        is_new = self.pk is None
         # Auto-generate reference code on first save
         if not self.reference_code:
             count = Tenant.objects.count() + 1
             self.reference_code = f'GC-{count:05d}'
             self.slug = f'{self.name.lower().replace(" ", "-")}-{self.reference_code.lower()}'
+        # Auto-set 30-day trial deadline for new trial tenants
+        if is_new and self.plan == 'trial' and not self.trial_ends_on:
+            self.trial_ends_on = timezone.now().date() + timedelta(days=30)
         super().save(*args, **kwargs)
 
     @property

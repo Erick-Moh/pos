@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block title %}Product Movement Report{% endblock %}
+{% block breadcrumb %}<i class="bi bi-graph-up me-1"></i> Product Movement{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-0">Product Movement Report</h4>
+        <p class="text-muted small mb-0">Fast &amp; slow movers — {{ period_label }}</p>
+    </div>
+</div>
+
+<!-- Period Filter -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body py-3">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-auto">
+                <label class="form-label small fw-medium mb-1">Period</label>
+                <select name="period" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="day"   {% if period == 'day'   %}selected{% endif %}>Single Day</option>
+                    <option value="month" {% if period == 'month' %}selected{% endif %}>Month</option>
+                    <option value="year"  {% if period == 'year'  %}selected{% endif %}>Year</option>
+                </select>
+            </div>
+
+            {% if period == 'day' %}
+            <div class="col-auto">
+                <label class="form-label small fw-medium mb-1">Date</label>
+                <input type="date" name="date" value="{{ target_date }}" class="form-control form-control-sm">
+            </div>
+            {% elif period == 'month' %}
+            <div class="col-auto">
+                <label class="form-label small fw-medium mb-1">Month</label>
+                <select name="month" class="form-select form-select-sm">
+                    {% for num, name in months %}
+                    <option value="{{ num }}" {% if num == month %}selected{% endif %}>{{ name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-auto">
+                <label class="form-label small fw-medium mb-1">Year</label>
+                <select name="year" class="form-select form-select-sm">
+                    {% for y in years %}
+                    <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% elif period == 'year' %}
+            <div class="col-auto">
+                <label class="form-label small fw-medium mb-1">Year</label>
+                <select name="year" class="form-select form-select-sm">
+                    {% for y in years %}
+                    <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+
+            <div class="col-auto">
+                <button type="submit" class="btn btn-nexus btn-sm">
+                    <i class="bi bi-funnel me-1"></i>Apply
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if total_products == 0 %}
+<div class="alert alert-info">
+    <i class="bi bi-info-circle me-2"></i>No sales recorded for <strong>{{ period_label }}</strong>.
+</div>
+{% else %}
+
+<div class="row g-4">
+    <!-- FAST MOVERS -->
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-success bg-opacity-10 border-0 pt-3">
+                <h6 class="fw-semibold mb-0 text-success">
+                    <i class="bi bi-rocket-takeoff me-2"></i>Fast Movers
+                    <span class="badge bg-success ms-2">{{ fast_movers|length }}</span>
+                </h6>
+                <p class="text-muted small mb-0">Highest units sold — {{ period_label }}</p>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-3">#</th>
+                            <th>Product</th>
+                            <th class="text-center">Qty Sold</th>
+                            <th class="text-end">Txns</th>
+                            <th class="text-end pe-3">Revenue</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in fast_movers %}
+                        <tr>
+                            <td class="ps-3 text-muted small">{{ forloop.counter }}</td>
+                            <td class="fw-medium small">{{ item.product_name }}</td>
+                            <td class="text-center">
+                                <span class="badge bg-success bg-opacity-75">
+                                    {{ item.total_qty|floatformat:0|intcomma }}
+                                </span>
+                            </td>
+                            <td class="text-end text-muted small">{{ item.num_transactions }}</td>
+                            <td class="text-end pe-3 small fw-semibold">
+                                {{ currency }} {{ item.total_revenue|floatformat:2|intcomma }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLOW MOVERS -->
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-danger bg-opacity-10 border-0 pt-3">
+                <h6 class="fw-semibold mb-0 text-danger">
+                    <i class="bi bi-hourglass-split me-2"></i>Slow Movers
+                    <span class="badge bg-danger ms-2">{{ slow_movers|length }}</span>
+                </h6>
+                <p class="text-muted small mb-0">Lowest units sold — {{ period_label }}</p>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-3">#</th>
+                            <th>Product</th>
+                            <th class="text-center">Qty Sold</th>
+                            <th class="text-end">Txns</th>
+                            <th class="text-end pe-3">Revenue</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in slow_movers %}
+                        <tr>
+                            <td class="ps-3 text-muted small">{{ forloop.counter }}</td>
+                            <td class="fw-medium small">{{ item.product_name }}</td>
+                            <td class="text-center">
+                                <span class="badge bg-danger bg-opacity-75">
+                                    {{ item.total_qty|floatformat:0|intcomma }}
+                                </span>
+                            </td>
+                            <td class="text-end text-muted small">{{ item.num_transactions }}</td>
+                            <td class="text-end pe-3 small fw-semibold">
+                                {{ currency }} {{ item.total_revenue|floatformat:2|intcomma }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -7,6 +7,7 @@ Includes eTIMS-ready fields for KRA compliance.
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
+from decimal import Decimal
 import uuid
 
 
@@ -35,11 +36,37 @@ class Customer(models.Model):
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    # ── Credit Settings ────────────────────────────────────────────────────
+    is_credit_allowed = models.BooleanField(
+        default=False,
+        help_text='Allow this customer to purchase on credit (pay later). Walk-in customers cannot use credit.'
+    )
+    credit_limit = models.DecimalField(
+        max_digits=14, decimal_places=2, default=Decimal('0'),
+        help_text='Maximum credit balance allowed (0 = unlimited if credit is enabled)'
+    )
+
     class Meta:
         ordering = ['name']
 
     def __str__(self):
         return f'{self.name} ({self.phone or "no phone"})'
+
+    @property
+    def outstanding_balance(self):
+        """Total unpaid credit across all incomplete credit sales."""
+        from django.db.models import Sum
+        result = self.sales.filter(
+            payment_method='credit', credit_paid=False, status='completed'
+        ).aggregate(total=Sum('total_amount'))
+        return result['total'] or Decimal('0')
+
+    @property
+    def available_credit(self):
+        """How much more credit this customer can use (0 credit_limit = unlimited)."""
+        if self.credit_limit == Decimal('0'):
+            return None  # Unlimited
+        return max(Decimal('0'), self.credit_limit - self.outstanding_balance)
 
 
 class Sale(models.Model):
@@ -127,6 +154,32 @@ class Sale(models.Model):
         help_text='Cryptographic signature from KRA eTIMS.'
     )
     is_fiscalized = models.BooleanField(default=False)
+
+    # ── Credit / Pay-Later Fields ──────────────────────────────────────────
+    credit_due_date = models.DateField(
+        null=True, blank=True,
+        help_text='Date by which the customer must settle this credit sale.'
+    )
+    credit_paid = models.BooleanField(
+        default=False,
+        help_text='True once the customer has repaid this credit sale.'
+    )
+    credit_paid_at = models.DateTimeField(null=True, blank=True)
+    credit_paid_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='credit_payments_recorded',
+        help_text='Staff member who recorded the credit repayment.'
+    )
+    credit_payment_method = models.CharField(
+        max_length=20, choices=PAYMENT_METHOD_CHOICES, null=True, blank=True,
+        help_text='How the credit was eventually settled.'
+    )
+    credit_payment_reference = models.CharField(
+        max_length=100, blank=True, null=True,
+        help_text='M-Pesa transaction code or other payment reference for the credit settlement.'
+    )
 
     # ── Status & Notes ─────────────────────────────────────────────────────
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='completed')

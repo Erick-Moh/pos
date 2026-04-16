@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block title %}{{ action }} Customer{% endblock %}
+{% block breadcrumb %}<i class="bi bi-person me-1"></i> {{ action }} Customer{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-7 col-lg-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent border-0 pt-4 pb-0 px-4">
+                <h5 class="fw-bold mb-0">{{ action }} Customer</h5>
+                <p class="text-muted small">Only registered customers are eligible for credit (pay later) sales.</p>
+            </div>
+            <div class="card-body px-4 pb-4">
+                <form method="post">
+                    {% csrf_token %}
+
+                    <div class="mb-3">
+                        <label class="form-label fw-medium">Full Name <span class="text-danger">*</span></label>
+                        <input type="text" name="name" class="form-control"
+                               value="{{ customer.name|default:'' }}" required placeholder="e.g. Jane Wanjiru">
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-sm-6">
+                            <label class="form-label fw-medium">Phone</label>
+                            <input type="tel" name="phone" class="form-control"
+                                   value="{{ customer.phone|default:'' }}" placeholder="+254 7XX XXX XXX">
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label fw-medium">Email</label>
+                            <input type="email" name="email" class="form-control"
+                                   value="{{ customer.email|default:'' }}" placeholder="jane@example.com">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-medium">KRA PIN</label>
+                        <input type="text" name="kra_pin" class="form-control"
+                               value="{{ customer.kra_pin|default:'' }}" placeholder="A012345678X">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-medium">Address</label>
+                        <textarea name="address" class="form-control" rows="2"
+                                  placeholder="Physical address or town">{{ customer.address|default:'' }}</textarea>
+                    </div>
+
+                    <hr class="my-3">
+                    <h6 class="fw-semibold mb-3"><i class="bi bi-credit-card-2-back me-2 text-warning"></i>Credit Settings</h6>
+
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="is_credit_allowed"
+                               name="is_credit_allowed" {% if customer.is_credit_allowed %}checked{% endif %}>
+                        <label class="form-check-label fw-medium" for="is_credit_allowed">
+                            Allow Credit (Pay Later) Purchases
+                        </label>
+                        <div class="form-text">Walk-in customers <strong>cannot</strong> use credit. Only registered customers with this option enabled.</div>
+                    </div>
+
+                    <div class="mb-3" id="credit_limit_section" {% if not customer.is_credit_allowed %}style="display:none"{% endif %}>
+                        <label class="form-label fw-medium">Credit Limit ({{ currency }})</label>
+                        <input type="number" name="credit_limit" class="form-control"
+                               value="{{ customer.credit_limit|default:'0' }}"
+                               min="0" step="100" placeholder="0">
+                        <div class="form-text">Set to 0 for no limit (unlimited credit).</div>
+                    </div>
+
+                    <div class="d-flex gap-2 mt-4">
+                        <button type="submit" class="btn btn-nexus">
+                            <i class="bi bi-check-lg me-1"></i>{{ action }} Customer
+                        </button>
+                        <a href="/{{ tenant_slug }}/pos/customers/" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('is_credit_allowed').addEventListener('change', function () {
+    document.getElementById('credit_limit_section').style.display = this.checked ? 'block' : 'none';
+});
+</script>
+{% endblock %}

@@ -250,6 +250,74 @@
                 <span class="text-muted small d-none d-md-inline">
                     {{ request.user.get_full_name|default:request.user.username }}
                 </span>
+
+                <!-- ── Admin Notification Bell ─────────────────────── -->
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-secondary position-relative" type="button"
+                            id="adminNotifBtn"
+                            data-bs-toggle="dropdown" aria-expanded="false"
+                            title="Notifications">
+                        <i class="bi bi-bell-fill"></i>
+                        {% if platform_unread_count > 0 %}
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                              style="font-size:9px;" id="admin-notif-badge">
+                            {{ platform_unread_count }}
+                        </span>
+                        {% endif %}
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-end shadow border-0 p-0"
+                         style="width:380px;max-height:480px;overflow-y:auto;border-radius:14px;">
+                        <div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom"
+                             style="background:#f1f5f9;border-radius:14px 14px 0 0;">
+                            <span class="fw-semibold small">Platform Notifications</span>
+                            {% if platform_unread_count > 0 %}
+                            <button class="btn btn-link btn-sm text-primary p-0 small fw-medium"
+                                    id="adminMarkAllBtn"
+                                    data-url="{% url 'platform:notifications_mark_all_read' %}">
+                                Mark all read
+                            </button>
+                            {% endif %}
+                        </div>
+                        {% if platform_notifications %}
+                            {% for notif in platform_notifications %}
+                            <div class="d-flex align-items-start gap-2 px-3 py-2 border-bottom {% if not notif.is_read %}bg-primary bg-opacity-5{% endif %}">
+                                <div class="flex-shrink-0 mt-1">
+                                    <i class="bi {{ notif.icon }} {{ notif.icon_color }}" style="font-size:1.1rem;"></i>
+                                </div>
+                                <div class="flex-grow-1 min-w-0">
+                                    <div class="small fw-semibold text-dark lh-sm">{{ notif.title }}</div>
+                                    <div class="small text-muted mt-1" style="font-size:11.5px;line-height:1.4;">
+                                        {{ notif.message|truncatechars:90 }}
+                                    </div>
+                                    <div class="d-flex align-items-center gap-2 mt-1">
+                                        <span class="text-muted" style="font-size:10.5px;">{{ notif.created_at|timesince }} ago</span>
+                                        {% if not notif.is_read %}
+                                        <span class="badge rounded-pill bg-primary" style="font-size:9px;">New</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% if notif.action_url %}
+                                <a href="{{ notif.action_url }}" class="btn btn-link btn-sm p-0 text-muted flex-shrink-0">
+                                    <i class="bi bi-arrow-right-circle"></i>
+                                </a>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="text-center py-5 text-muted">
+                                <i class="bi bi-bell-slash fs-3 d-block mb-2"></i>
+                                <div class="small">No notifications</div>
+                            </div>
+                        {% endif %}
+                        <div class="text-center py-2" style="background:#f1f5f9;border-radius:0 0 14px 14px;">
+                            <a href="{% url 'platform:notifications' %}" class="small text-primary text-decoration-none fw-medium">
+                                View all notifications
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <!-- ── End Admin Bell ──────────────────────────────── -->
+
                 <a href="{% url 'platform:logout' %}"
                    class="btn btn-sm btn-outline-danger"
                    onclick="return confirm('Sign out of the platform?')"
@@ -296,6 +364,31 @@ $(document).ready(function() {
 document.querySelectorAll('.alert-dismissible').forEach(el => {
     setTimeout(() => { const a = bootstrap.Alert.getOrCreateInstance(el); if(a) a.close(); }, 5000);
 });
+</script>
+<!-- Admin Notification Bell JS -->
+<script>
+(function () {
+    const markAllBtn = document.getElementById('adminMarkAllBtn');
+    if (markAllBtn) {
+        markAllBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            const csrfToken = document.cookie.split('; ').find(r => r.startsWith('csrftoken='))?.split('=')[1] || '';
+            fetch(this.dataset.url, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' },
+            }).then(r => r.json()).then(data => {
+                if (data.ok) {
+                    document.getElementById('admin-notif-badge')?.remove();
+                    document.querySelectorAll('.bg-primary.bg-opacity-5').forEach(el => {
+                        el.classList.remove('bg-primary', 'bg-opacity-5');
+                    });
+                    document.querySelectorAll('.badge.bg-primary').forEach(el => el.remove());
+                    markAllBtn.style.display = 'none';
+                }
+            });
+        });
+    }
+})();
 </script>
 {% block extra_scripts %}{% endblock %}
 </body>

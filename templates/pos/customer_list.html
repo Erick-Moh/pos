@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block title %}Customers{% endblock %}
+{% block breadcrumb %}<i class="bi bi-people me-1"></i> Customers{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-0">Customers</h4>
+        <p class="text-muted small mb-0">Manage registered customers and their credit settings.</p>
+    </div>
+    <a href="/{{ tenant_slug }}/pos/customers/new/" class="btn btn-nexus btn-sm">
+        <i class="bi bi-person-plus me-1"></i>New Customer
+    </a>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th class="ps-3">Name</th>
+                    <th>Phone</th>
+                    <th>Email</th>
+                    <th class="text-center">Credit</th>
+                    <th class="text-end">Credit Limit</th>
+                    <th class="text-end">Outstanding</th>
+                    <th class="text-end pe-3">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for customer in customers %}
+                <tr>
+                    <td class="ps-3 fw-medium">{{ customer.name }}</td>
+                    <td class="small">{{ customer.phone|default:"—" }}</td>
+                    <td class="small">{{ customer.email|default:"—" }}</td>
+                    <td class="text-center">
+                        {% if customer.is_credit_allowed %}
+                            <span class="badge bg-success"><i class="bi bi-check me-1"></i>Enabled</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Disabled</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end small">
+                        {% if customer.is_credit_allowed %}
+                            {% if customer.credit_limit == 0 %}
+                                <span class="text-muted">Unlimited</span>
+                            {% else %}
+                                {{ currency }} {{ customer.credit_limit|floatformat:2|intcomma }}
+                            {% endif %}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
+                    <td class="text-end small">
+                        {% if customer.is_credit_allowed %}
+                            {% with balance=customer.outstanding_balance %}
+                            <span class="{% if balance > 0 %}text-danger fw-bold{% else %}text-success{% endif %}">
+                                {{ currency }} {{ balance|floatformat:2|intcomma }}
+                            </span>
+                            {% endwith %}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
+                    <td class="text-end pe-3">
+                        <a href="/{{ tenant_slug }}/pos/customers/{{ customer.pk }}/edit/" class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center text-muted py-5">
+                        <i class="bi bi-people fs-3 d-block mb-2"></i>
+                        No customers yet. <a href="/{{ tenant_slug }}/pos/customers/new/">Add one</a>.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

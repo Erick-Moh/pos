@@ -73,6 +73,7 @@ TEMPLATES = [
                 # Custom context processors
                 'settings_app.context_processors.system_settings',
                 'tenants.context_processors.tenant',
+                'platform_app.context_processors.notifications',
             ],
         },
     },
@@ -169,3 +170,26 @@ CELERY_TIMEZONE = "Africa/Nairobi"
 CELERY_ENABLE_UTC = True
 CELERY_TASK_ACKS_LATE = True
 CELERY_WORKER_PREFETCH_MULTIPLIER = 1
+
+# ── Celery Beat Schedule ────────────────────────────────────────────────
+# These are the DEFAULTS. You can also manage beat schedules through the
+# Django admin → Periodic Tasks (django-celery-beat).
+from celery.schedules import crontab
+
+CELERY_BEAT_SCHEDULE = {
+    # Run daily at 01:00 EAT — deactivate tenants whose trial has expired
+    'deactivate-expired-trial-tenants': {
+        'task': 'platform_app.tasks.deactivate_expired_trial_tenants',
+        'schedule': crontab(hour=1, minute=0),
+    },
+    # Run daily at 01:15 EAT — deactivate paid tenants that haven't paid
+    'deactivate-unpaid-tenants': {
+        'task': 'platform_app.tasks.deactivate_unpaid_tenants',
+        'schedule': crontab(hour=1, minute=15),
+    },
+    # Run daily at 08:00 EAT — send trial expiry reminders (5 days & 2 days before)
+    'send-trial-expiry-reminders': {
+        'task': 'platform_app.tasks.send_trial_expiry_reminders',
+        'schedule': crontab(hour=8, minute=0),
+    },
+}

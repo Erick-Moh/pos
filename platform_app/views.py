@@ -15,6 +15,9 @@ from django.contrib.auth import get_user_model
 from datetime import timedelta
 from decimal import Decimal
 
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+
 from tenants.models import Tenant
 from pos.models import Sale
 from inventory.models import Product
@@ -24,6 +27,7 @@ from .forms import (
     PlatformLoginForm, TenantForm, PlatformUserForm,
 )
 from .tasks import send_tenant_welcome_email
+from .models import Notification
 
 User = get_user_model()
 
@@ -163,6 +167,31 @@ def tenant_create(request):
             tenant = form.save()
             # Auto-create SystemSetting for this tenant
             SystemSetting.get_settings(tenant)
+            # Welcome notification for the tenant's admin
+            Notification.create_for_tenant(
+                tenant=tenant,
+                notification_type='welcome',
+                title=f'Welcome to GetCore, {tenant.name}! 🎉',
+                message=(
+                    f'Hello {tenant.owner_name or "there"}! Your GetCore POS account is ready. '
+                    f'Your free 30-day trial runs until '
+                    f'{tenant.trial_ends_on.strftime("%d %B %Y") if tenant.trial_ends_on else "N/A"}. '
+                    f'Set up your products, invite staff, and start selling.'
+                ),
+                action_url=f'/{tenant.slug}/pos/',
+            )
+            # Platform admin notification — new client signed up
+            Notification.create_for_platform(
+                tenant=tenant,
+                notification_type='new_tenant',
+                title=f'New client: {tenant.name}',
+                message=(
+                    f'A new client "{tenant.name}" (Ref: {tenant.reference_code}) has been created. '
+                    f'Plan: {tenant.get_plan_display()}. '
+                    f'Owner: {tenant.owner_name or "N/A"} — {tenant.owner_email or "no email"}.'
+                ),
+                action_url=f'/platform/clients/{tenant.pk}/',
+            )
             send_tenant_welcome_email.delay(
                 tenant_name=tenant.name,
                 contact_email=tenant.owner_email,
@@ -286,3 +315,38 @@ def staff_edit(request, pk):
     return render(request, 'platform/staff_form.html', {
         'form': form, 'action': 'Edit', 'obj': user,
     })
+
+
+# ════════════════════════════════════════════════════════════════════════
+#  PLATFORM ADMIN NOTIFICATIONS
+# ════════════════════════════════════════════════════════════════════════
+
+@staff_required
+def platform_notifications(request):
+    """Platform admin notification centre — all notifications."""
+    notifications = Notification.objects.filter(
+        recipient='platform'
+    ).order_by('-created_at')[:50]
+    # Mark all as read when the page is opened
+    Notification.objects.filter(recipient='platform', is_read=False).update(is_read=True)
+    return render(request, 'platform/notifications.html', {
+        'notifications': notifications,
+    })
+
+
+@staff_required
+@require_POST
+def platform_mark_notification_read(request, pk):
+    """AJAX: mark a single platform notification as read."""
+    notif = get_object_or_404(Notification, pk=pk, recipient='platform')
+    notif.is_read = True
+    notif.save(update_fields=['is_read'])
+    return JsonResponse({'ok': True})
+
+
+@staff_required
+@require_POST
+def platform_mark_all_read(request):
+    """Mark all platform admin notifications as read."""
+    Notification.objects.filter(recipient='platform', is_read=False).update(is_read=True)
+    return JsonResponse({'ok': True})

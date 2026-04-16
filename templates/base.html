@@ -215,8 +215,18 @@
                 </a>
             </li>
             <li class="nav-item mb-1">
-                <a href="/{{ tenant.slug }}/settings/" class="nav-link text-white {% if request.resolver_match.app_name == 'settings_app' %}active{% endif %}">
+                <a href="/{{ tenant.slug }}/settings/" class="nav-link text-white {% if request.resolver_match.app_name == 'settings_app' and request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
                     <i class="bi bi-gear me-2"></i>Settings
+                </a>
+            </li>
+            <li class="nav-item mb-1">
+                <a href="/{{ tenant.slug }}/settings/billing/"
+                   class="nav-link text-white {% if request.resolver_match.url_name == 'billing_checkout' %}active{% endif %}">
+                    <i class="bi bi-credit-card me-2"></i>Billing
+                    {% if tenant.trial_ends_on %}
+                    {% now "Y-m-d" as today_str %}
+                    <span class="badge bg-warning text-dark ms-auto" style="font-size:9px;">Trial</span>
+                    {% endif %}
                 </a>
             </li>
             {% endif %}
@@ -253,6 +263,84 @@
                     <span class="badge rounded-pill bg-danger ms-1">{{ low_stock_alert_count }}</span>
                 </a>
                 {% endif %}
+
+                <!-- ── Notification Bell ──────────────────────────────── -->
+                {% if user.is_admin_role %}
+                <div class="dropdown" id="notif-dropdown">
+                    <button class="btn btn-sm btn-outline-secondary position-relative" type="button"
+                            id="notifDropdownBtn"
+                            data-bs-toggle="dropdown" aria-expanded="false"
+                            title="Notifications">
+                        <i class="bi bi-bell-fill"></i>
+                        {% if tenant_unread_count > 0 %}
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                              style="font-size:9px;" id="notif-badge">
+                            {{ tenant_unread_count }}
+                        </span>
+                        {% endif %}
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-end shadow border-0 p-0"
+                         style="width:360px;max-height:480px;overflow-y:auto;border-radius:14px;"
+                         aria-labelledby="notifDropdownBtn">
+                        <!-- Header -->
+                        <div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom"
+                             style="background:#f8fafc;border-radius:14px 14px 0 0;">
+                            <span class="fw-semibold small">Notifications</span>
+                            {% if tenant_unread_count > 0 %}
+                            <button class="btn btn-link btn-sm text-primary p-0 small fw-medium"
+                                    id="markAllReadBtn"
+                                    data-url="/{{ tenant.slug }}/settings/notifications/mark-all-read/">
+                                Mark all read
+                            </button>
+                            {% endif %}
+                        </div>
+                        <!-- Notification Items -->
+                        {% if tenant_notifications %}
+                            {% for notif in tenant_notifications %}
+                            <div class="notif-item d-flex align-items-start gap-2 px-3 py-2 border-bottom {% if not notif.is_read %}bg-primary bg-opacity-5{% endif %}"
+                                 style="cursor:pointer;" data-notif-id="{{ notif.pk }}">
+                                <div class="flex-shrink-0 mt-1">
+                                    <i class="bi {{ notif.icon }} {{ notif.icon_color }}" style="font-size:1.1rem;"></i>
+                                </div>
+                                <div class="min-w-0 flex-grow-1">
+                                    <div class="small fw-semibold text-dark lh-sm">{{ notif.title }}</div>
+                                    <div class="small text-muted mt-1" style="font-size:11.5px;line-height:1.4;">
+                                        {{ notif.message|truncatechars:90 }}
+                                    </div>
+                                    <div class="d-flex align-items-center gap-2 mt-1">
+                                        <span class="text-muted" style="font-size:10.5px;">
+                                            {{ notif.created_at|timesince }} ago
+                                        </span>
+                                        {% if not notif.is_read %}
+                                        <span class="badge rounded-pill bg-primary" style="font-size:9px;">New</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% if notif.action_url %}
+                                <a href="{{ notif.action_url }}" class="btn btn-link btn-sm p-0 text-muted flex-shrink-0"
+                                   title="Go" style="font-size:0.8rem;">
+                                    <i class="bi bi-arrow-right-circle"></i>
+                                </a>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="text-center py-5 text-muted">
+                                <i class="bi bi-bell-slash fs-3 d-block mb-2"></i>
+                                <div class="small">You're all caught up!</div>
+                            </div>
+                        {% endif %}
+                        <!-- Footer -->
+                        <div class="text-center py-2" style="background:#f8fafc;border-radius:0 0 14px 14px;">
+                            <a href="/{{ tenant.slug }}/settings/notifications/" class="small text-primary text-decoration-none fw-medium">
+                                View all notifications
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                <!-- ── End Notification Bell ─────────────────────────── -->
+
                 <a href="/{{ tenant.slug }}/users/profile/" class="d-flex align-items-center gap-2 text-decoration-none text-reset">
                     <div class="sidebar-user-badge" style="background:rgba(var(--nexus-primary-rgb),.12);color:var(--nexus-primary);border-color:rgba(var(--nexus-primary-rgb),.25);">
                         {{ user.first_name.0|default:user.username.0|upper }}
@@ -474,10 +562,38 @@
   document.getElementById('sidebarToggle')?.addEventListener('click', function() {
     document.getElementById('wrapper').classList.toggle('sidebar-collapsed');
   });
-  
+
   $(document).ready(function() {
     $('.select2').select2({ theme: 'bootstrap-5', width: '100%' });
   });
+</script>
+
+<!-- Notification Bell JS -->
+<script>
+(function () {
+    // Mark all read
+    const markAllBtn = document.getElementById('markAllReadBtn');
+    if (markAllBtn) {
+        markAllBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            fetch(this.dataset.url, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json' },
+            }).then(r => r.json()).then(data => {
+                if (data.ok) {
+                    document.querySelectorAll('#notif-badge').forEach(el => el.remove());
+                    document.querySelectorAll('.notif-item').forEach(el => el.classList.remove('bg-primary', 'bg-opacity-5'));
+                    document.querySelectorAll('.notif-item .badge.bg-primary').forEach(el => el.remove());
+                    markAllBtn.style.display = 'none';
+                }
+            });
+        });
+    }
+    // Auto-dismiss alerts
+    document.querySelectorAll('.alert-dismissible').forEach(el => {
+        setTimeout(() => { const a = bootstrap.Alert.getOrCreateInstance(el); if (a) a.close(); }, 6000);
+    });
+})();
 </script>
 
 {% block extra_scripts %}{% endblock %}

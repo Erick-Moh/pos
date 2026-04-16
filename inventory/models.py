@@ -184,6 +184,18 @@ class Product(models.Model):
         default=False,
         help_text='If True, stock tracking is disabled (e.g. labour, service fee).'
     )
+    track_stock = models.BooleanField(
+        default=True,
+        help_text=(
+            'Uncheck for items sold without strict quantity tracking '
+            '(e.g. loose food items, produce sold by weight/availability). '
+            'Sales will still be recorded but stock will not be deducted.'
+        )
+    )
+    buying_price_optional = models.BooleanField(
+        default=False,
+        help_text='Check if this product has no fixed buying price (e.g. variable-cost food items).'
+    )
 
     # ── Timestamps ─────────────────────────────────────────────────────────
     created_by = models.ForeignKey(
