@@ -19,7 +19,7 @@ class Tenant(models.Model):
     """
 
     PLAN_CHOICES = [
-        ('trial',      'Free Trial (14 days)'),
+        ('trial',      'Free Trial (30 days)'),
         ('starter',    'Starter'),
         ('business',   'Business'),
         ('enterprise', 'Enterprise'),

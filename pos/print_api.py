@@ -20,7 +20,6 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from django.utils import timezone
-from django.conf import settings
 from .models import PrintDevice, PrintJob
 
 
@@ -199,7 +198,6 @@ def device_status(request, device_id):
     AJAX endpoint used by the POS terminal UI to check if the printer is ready
     before attempting to queue a print job. Returns JSON.
     """
-    from users.decorators import login_required_tenant
     from tenants.mixins import get_tenant_or_404
 
     tenant = get_tenant_or_404(request)

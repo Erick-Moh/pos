@@ -19,7 +19,7 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 
 from tenants.models import Tenant
-from pos.models import Sale, Customer
+from pos.models import Sale, Customer, PrintDevice
 from inventory.models import Product
 from settings_app.models import SystemSetting
 from .decorators import staff_required
@@ -167,6 +167,11 @@ def tenant_create(request):
             tenant = form.save()
             # Auto-create SystemSetting for this tenant
             SystemSetting.get_settings(tenant)
+            # Auto-create a default PrintDevice for this tenant
+            PrintDevice.objects.create(
+                tenant=tenant,
+                name='Main Printer',
+            )
             # Welcome notification for the tenant's admin
             Notification.create_for_tenant(
                 tenant=tenant,
