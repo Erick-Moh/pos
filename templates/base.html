@@ -225,7 +225,7 @@
                 </a>
             </li>
             <li class="nav-item mb-1">
-                <a href="/{{ tenant.slug }}/settings/billing/"
+                <a href="/{{ tenant.slug }}/settings/billing/history/"
                    class="nav-link text-white {% if request.resolver_match.url_name == 'billing_checkout' or request.resolver_match.url_name == 'billing_success' or request.resolver_match.url_name == 'billing_history' %}active{% endif %}">
                     <i class="bi bi-credit-card me-2"></i>Billing
                     {% if tenant.plan == 'trial' and tenant.trial_ends_on %}
