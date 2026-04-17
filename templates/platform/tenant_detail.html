@@ -114,6 +114,12 @@
                     <dd class="col-7">{{ tenant.owner_phone|default:"—" }}</dd>
                     <dt class="col-5 text-muted fw-normal">Created</dt>
                     <dd class="col-7">{{ tenant.created_at|date:"d M Y" }}</dd>
+                    {% for device in tenant.print_devices.all %}
+                        <dt class="col-5 text-muted fw-normal">{{ device.name }}</dt>
+                        <dd class="col-7">{{ device.token }}</dd>
+                    {% empty %}
+                        <dd class="col-12 text-muted">No print devices configured</dd>
+                    {% endfor %}
                 </dl>
             </div>
         </div>
