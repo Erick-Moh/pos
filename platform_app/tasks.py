@@ -208,8 +208,8 @@ def send_trial_expiry_reminders(self):
                         f'  Monthly maintenance: KES {tenant.monthly_fee:,.0f}/month\n'
                         f'  One-time installation: KES 15,000\n\n'
                         f'Contact us to upgrade:\n'
-                        f'  Email: support@getcore.co.ke\n'
-                        f'  Phone: +254 700 000 000\n\n'
+                        f'  Email: hello@getcore.co.ke\n'
+                        f'  Phone: +254 712 499 775\n\n'
                         f'© {timezone.now().year} GetCore Solutions.'
                     )
                     send_mail(
@@ -226,6 +226,114 @@ def send_trial_expiry_reminders(self):
     return {'reminders_sent': reminders_sent, 'count': len(reminders_sent)}
 
 
+@shared_task(bind=True, max_retries=3)
+def send_payment_due_reminders(self):
+    """
+    Daily task: remind active paid-plan tenants whose next payment is due
+    in exactly 5 days or exactly 2 days, but only if that month has NOT
+    already been paid (checks TenantPayment carry-forward records).
+    Schedule: every day at 08:30 Africa/Nairobi.
+    """
+    from tenants.models import Tenant
+    from .models import Notification, TenantPayment
+    import calendar
+
+    today = timezone.now().date()
+    reminders_sent = []
+
+    for days_left in [5, 2]:
+        target_date = today + timezone.timedelta(days=days_left)
+
+        # Find active, non-trial tenants whose payment_due_date is exactly
+        # 5 or 2 days away
+        tenants_due = Tenant.objects.filter(
+            is_active=True,
+            payment_due_date=target_date,
+        ).exclude(plan='trial')
+
+        for tenant in tenants_due:
+            # Check if the upcoming month is already covered by a payment
+            # (carry-forward means a tenant could have paid in advance)
+            due_year  = target_date.year
+            due_month = target_date.month
+            already_paid = TenantPayment.objects.filter(
+                tenant=tenant,
+                year=due_year,
+                month=due_month,
+            ).exists()
+
+            if already_paid:
+                continue  # Already covered — no reminder needed
+
+            month_name = calendar.month_name[due_month]
+            ntype = 'payment_due'
+
+            # In-system notification
+            Notification.create_for_tenant(
+                tenant=tenant,
+                notification_type=ntype,
+                title=f'Payment due in {days_left} day{"s" if days_left > 1 else ""}',
+                message=(
+                    f'Your GetCore maintenance fee of KES {tenant.monthly_fee:,.0f} '
+                    f'for {month_name} {due_year} is due on '
+                    f'{target_date.strftime("%d %B %Y")} '
+                    f'({days_left} day{"s" if days_left > 1 else ""} remaining). '
+                    f'Pay via M-Pesa to avoid service interruption.'
+                ),
+                action_url=f'/{tenant.slug}/settings/billing/',
+            )
+
+            # Platform admin notification
+            Notification.create_for_platform(
+                tenant=tenant,
+                notification_type='payment_due',
+                title=f'Payment due soon: {tenant.name}',
+                message=(
+                    f'"{tenant.name}" (Ref: {tenant.reference_code}) has a payment of '
+                    f'KES {tenant.monthly_fee:,.0f} due on {target_date.strftime("%d %B %Y")} '
+                    f'({days_left} day{"s" if days_left > 1 else ""} away). Not yet paid.'
+                ),
+                action_url=f'/platform/clients/{tenant.pk}/',
+            )
+
+            # Email reminder
+            if tenant.owner_email:
+                try:
+                    send_mail(
+                        subject=(
+                            f'GetCore payment due in {days_left} day{"s" if days_left > 1 else ""} '
+                            f'— {tenant.name}'
+                        ),
+                        message=(
+                            f'Hello {tenant.owner_name or "there"},\n\n'
+                            f'This is a reminder that your GetCore monthly maintenance fee is due soon.\n\n'
+                            f'  Amount : KES {tenant.monthly_fee:,.0f}\n'
+                            f'  Period : {month_name} {due_year}\n'
+                            f'  Due on : {target_date.strftime("%d %B %Y")} ({days_left} day{"s" if days_left > 1 else ""} away)\n\n'
+                            f'Pay via M-Pesa by logging in to your GetCore account:\n'
+                            f'  Settings → Billing → Make a Payment\n\n'
+                            f'If you have already made payment, please disregard this message.\n\n'
+                            f'Need help?\n'
+                            f'  Email: hello@getcore.co.ke\n'
+                            f'  Phone: +254 712 499 775\n\n'
+                            f'© {timezone.now().year} GetCore Solutions.'
+                        ),
+                        from_email=settings.DEFAULT_FROM_EMAIL,
+                        recipient_list=[tenant.owner_email],
+                        fail_silently=True,
+                    )
+                except Exception:
+                    pass
+
+            reminders_sent.append({
+                'tenant': tenant.reference_code,
+                'days_left': days_left,
+                'due_date': target_date.isoformat(),
+            })
+
+    return {'reminders_sent': reminders_sent, 'count': len(reminders_sent)}
+
+
 def _send_account_deactivation_email(tenant):
     """Helper: notify tenant owner their account has been deactivated."""
     subject = f'Your GetCore account has been deactivated — {tenant.name}'
@@ -234,8 +342,8 @@ def _send_account_deactivation_email(tenant):
         f'Your GetCore POS account for "{tenant.name}" has been deactivated because '
         f'the payment deadline has elapsed.\n\n'
         f'To reactivate your account and restore access, please contact us:\n'
-        f'  Email: support@getcore.co.ke\n'
-        f'  Phone: +254 700 000 000\n\n'
+        f'  Email: hello@getcore.co.ke\n'
+        f'  Phone: +254 712 499 775\n\n'
         f'Your data is safe and will be restored upon payment.\n\n'
         f'© {timezone.now().year} GetCore Solutions.'
     )
