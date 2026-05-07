@@ -458,4 +458,3 @@ def mark_credit_paid(request, tenant_slug, pk):
         f'({"" if not reference else reference + ", "}{sale.get_credit_payment_method_display()}).'
     )
     return redirect('tenant:pos:credit_sales_list', tenant_slug=tenant_slug)
-             
