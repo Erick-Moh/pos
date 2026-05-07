@@ -18,10 +18,10 @@ def send_welcome_email(self, user_id, username, credential_type, credential_valu
         # Determine credential label based on type
         if credential_type == 'pin':
             credential_label = 'PIN'
-            credential_hint = '💡 You\'ll be prompted to change your PIN on your first login'
+            credential_hint = 'You will be prompted to change your PIN on first login.'
         else:
             credential_label = 'Password'
-            credential_hint = '💡 You\'ll be prompted to change your password on your first login'
+            credential_hint = 'You will be prompted to change your password on first login.'
 
         context = {
             'first_name': user.first_name or username,

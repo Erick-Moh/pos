@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load humanize %}
-{% block title %}Sale {{ sale.invoice_number }} — {{ sys.business_name }}{% endblock %}
+{% block title %}Sale {{ sale.invoice_number }} | {{ sys.business_name }}{% endblock %}
 {% block breadcrumb %}<a href="/{{ tenant.slug }}/pos/sales/" class="text-muted text-decoration-none">Sales</a> / {{ sale.invoice_number }}{% endblock %}
 
 {% block content %}

@@ -57,7 +57,7 @@ def login_view(request, tenant_slug):
                                 'active_tab': active_tab,
                             })
                     login(request, user)
-                    messages.success(request, f'Welcome back, {user.first_name or user.username}!')
+                    messages.success(request, f'Welcome back, {user.first_name or user.username}.')
                     return redirect('tenant:pos:dashboard', tenant_slug=tenant_slug)
                 messages.error(request, 'Invalid username or PIN.')
 
@@ -88,7 +88,7 @@ def login_view(request, tenant_slug):
                                 'active_tab': active_tab,
                             })
                     login(request, user)
-                    messages.success(request, f'Welcome, {user.get_full_name() or user.username}!')
+                    messages.success(request, f'Welcome, {user.get_full_name() or user.username}.')
                     return redirect('tenant:pos:dashboard', tenant_slug=tenant_slug)
                 messages.error(request, 'Invalid credentials or insufficient privileges.')
 
@@ -102,7 +102,7 @@ def login_view(request, tenant_slug):
 def logout_view(request, tenant_slug):
     name = request.user.get_full_name() or request.user.username
     logout(request)
-    messages.info(request, f'Goodbye, {name}. You have been logged out.')
+    messages.info(request, 'You have been signed out.')
     return redirect('tenant:users:login', tenant_slug=tenant_slug)
 
 
@@ -122,7 +122,7 @@ def change_credentials(request, tenant_slug):
         if form.is_valid():
             form.save()
             update_session_auth_hash(request, user)
-            messages.success(request, 'Your credentials have been updated. Welcome!')
+            messages.success(request, 'Credentials updated. You are now signed in.')
             return redirect('tenant:pos:dashboard', tenant_slug=tenant_slug)
     else:
         form = ChangeCredentialsForm(user=user)
@@ -172,7 +172,7 @@ def user_create(request, tenant_slug):
                 tenant_name=tenant.name,
                 tenant_slug=tenant.slug,
             )
-            messages.success(request, f'User "{raw_username}" created successfully.')
+            messages.success(request, f'User "{raw_username}" created.')
             return redirect('tenant:users:user_list', tenant_slug=tenant_slug)
     else:
         form = UserCreateForm()

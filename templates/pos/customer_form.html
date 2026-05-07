@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load humanize %}
-{% block title %}{{ action }} Customer — {{ tenant.name }}{% endblock %}
+{% block title %}{{ action }} Customer | {{ tenant.name }}{% endblock %}
 {% block breadcrumb %}
   <a href="/{{ tenant_slug }}/pos/customers/" class="text-decoration-none text-muted">
     <i class="bi bi-people me-1"></i>Customers
@@ -27,7 +27,7 @@
             <h5 class="mb-0 fw-bold">{{ action }} Customer</h5>
             <div class="small opacity-75">
               {% if action == 'Create' %}
-                Only <strong>Name</strong> is required — all other fields are optional.
+                Only <strong>Name</strong> is required | all other fields are optional.
               {% else %}
                 Update {{ customer.name }}'s profile.
               {% endif %}

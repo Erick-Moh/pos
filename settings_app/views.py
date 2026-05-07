@@ -173,7 +173,7 @@ def billing_success(request, tenant_slug):
         Notification.create_for_tenant(
             tenant=tenant,
             notification_type='payment_confirmed',
-            title='Payment Confirmed ✓',
+            title='Payment Confirmed',
             message=(
                 f'Your GetCore subscription payment for {month_name} {target_year} '
                 f'(KES {tenant.monthly_fee:,.0f}) has been received. '
@@ -184,7 +184,7 @@ def billing_success(request, tenant_slug):
         Notification.create_for_platform(
             tenant=tenant,
             notification_type='payment_confirmed',
-            title=f'Payment Received — {tenant.name}',
+            title=f'Payment Received: {tenant.name}',
             message=(
                 f'{tenant.name} ({tenant.reference_code}) has paid KES {tenant.monthly_fee:,.0f} '
                 f'for {month_name} {target_year}.'

@@ -176,10 +176,10 @@ def tenant_create(request):
             Notification.create_for_tenant(
                 tenant=tenant,
                 notification_type='welcome',
-                title=f'Welcome to GetCore, {tenant.name}! 🎉',
+                title=f'Welcome to GetCore, {tenant.name}',
                 message=(
-                    f'Hello {tenant.owner_name or "there"}! Your GetCore POS account is ready. '
-                    f'Your free 30-day trial runs until '
+                    f'Your GetCore POS account is ready. '
+                    f'Your 30-day free trial runs until '
                     f'{tenant.trial_ends_on.strftime("%d %B %Y") if tenant.trial_ends_on else "N/A"}. '
                     f'Set up your products, invite staff, and start selling.'
                 ),
@@ -191,9 +191,9 @@ def tenant_create(request):
                 notification_type='new_tenant',
                 title=f'New client: {tenant.name}',
                 message=(
-                    f'A new client "{tenant.name}" (Ref: {tenant.reference_code}) has been created. '
+                    f'Client "{tenant.name}" (Ref: {tenant.reference_code}) has been created. '
                     f'Plan: {tenant.get_plan_display()}. '
-                    f'Owner: {tenant.owner_name or "N/A"} — {tenant.owner_email or "no email"}.'
+                    f'Owner: {tenant.owner_name or "N/A"} ({tenant.owner_email or "no email"}).'
                 ),
                 action_url=f'/platform/clients/{tenant.pk}/',
             )

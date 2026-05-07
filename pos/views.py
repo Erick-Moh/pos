@@ -335,7 +335,7 @@ def customer_create(request, tenant_slug):
             is_credit_allowed='is_credit_allowed' in request.POST,
             credit_limit=credit_limit_raw,
         )
-        messages.success(request, f'Customer "{name}" created successfully.')
+        messages.success(request, f'Customer "{name}" created.')
         return redirect('tenant:pos:customer_detail', tenant_slug=tenant_slug, pk=customer.pk)
     return render(request, 'pos/customer_form.html', {
         'action': 'Create',
@@ -385,7 +385,7 @@ def customer_delete(request, tenant_slug, pk):
     name = customer.name
     customer.is_active = False
     customer.save(update_fields=['is_active'])
-    messages.success(request, f'Customer "{name}" has been deactivated.')
+    messages.success(request, f'Customer "{name}" deactivated.')
     return redirect('tenant:pos:customer_list', tenant_slug=tenant_slug)
 
 
@@ -455,6 +455,7 @@ def mark_credit_paid(request, tenant_slug, pk):
     messages.success(
         request,
         f'Credit sale {sale.invoice_number} marked as paid '
-        f'({"" if not reference else reference + " — "}{sale.get_credit_payment_method_display()}).'
+        f'({"" if not reference else reference + ", "}{sale.get_credit_payment_method_display()}).'
     )
     return redirect('tenant:pos:credit_sales_list', tenant_slug=tenant_slug)
+             

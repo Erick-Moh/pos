@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load humanize %}
-{% block title %}Monthly Report — {{ sys.business_name }}{% endblock %}
+{% block title %}Monthly Report | {{ sys.business_name }}{% endblock %}
 {% block breadcrumb %}<i class="bi bi-bar-chart me-1"></i> Monthly Report{% endblock %}
 
 {% block content %}
@@ -59,7 +59,7 @@
     <div class="col-lg-8">
         <div class="card border-0 shadow-sm">
             <div class="card-header bg-transparent border-0 pt-3">
-                <h6 class="fw-semibold">Daily Revenue — {{ month_name }} {{ year }}</h6>
+                <h6 class="fw-semibold">Daily Revenue | {{ month_name }} {{ year }}</h6>
             </div>
             <div class="card-body">
                 <canvas id="dailyChart" height="120"></canvas>
@@ -94,7 +94,7 @@
     <div class="col-12">
         <div class="card border-0 shadow-sm">
             <div class="card-header bg-transparent border-0 pt-3">
-                <h6 class="fw-semibold">Top 10 Products — {{ month_name }} {{ year }}</h6>
+                <h6 class="fw-semibold">Top 10 Products | {{ month_name }} {{ year }}</h6>
             </div>
             <div class="table-responsive">
                 <table class="table table-hover mb-0">

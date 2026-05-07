@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load humanize %}
-{% block title %}Finance — {{ sys.business_name }}{% endblock %}
+{% block title %}Finance | {{ sys.business_name }}{% endblock %}
 {% block breadcrumb %}<i class="bi bi-graph-up-arrow me-1"></i> Finance Dashboard{% endblock %}
 
 {% block content %}
@@ -61,7 +61,7 @@
     <div class="col-lg-8">
         <div class="card border-0 shadow-sm">
             <div class="card-header bg-transparent border-0 pt-3">
-                <h6 class="fw-semibold mb-0">Revenue — Last 7 Days</h6>
+                <h6 class="fw-semibold mb-0">Revenue | Last 7 Days</h6>
             </div>
             <div class="card-body">
                 <canvas id="revenueChart" height="100"></canvas>

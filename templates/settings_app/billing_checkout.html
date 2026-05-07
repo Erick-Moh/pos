@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load static humanize %}
-{% block title %}Pay Maintenance Fee — {{ tenant.name }}{% endblock %}
+{% block title %}Pay Maintenance Fee | {{ tenant.name }}{% endblock %}
 {% block breadcrumb %}<i class="bi bi-credit-card me-1"></i> Billing & Subscription{% endblock %}
 
 {% block extra_head %}
@@ -213,12 +213,12 @@
 
   <div class="row g-0 checkout-card">
 
-    <!-- LEFT — Plan Summary -->
+    <!-- LEFT | Plan Summary -->
     <div class="col-lg-5">
       <div class="checkout-left h-100">
         <div class="plan-badge">
           <i class="bi bi-rocket-takeoff-fill text-success"></i>
-          GetCore POS — {{ tenant.get_plan_display }}
+          GetCore POS | {{ tenant.get_plan_display }}
         </div>
 
         <div class="checkout-amount">KES {{ tenant.monthly_fee|floatformat:0|intcomma }}</div>
@@ -288,14 +288,14 @@
       </div>
     </div>
 
-    <!-- RIGHT — Payment Form -->
+    <!-- RIGHT | Payment Form -->
     <div class="col-lg-7">
       <div class="checkout-right">
         <div class="d-flex align-items-center gap-3 mb-4">
           <img src="{% static 'img/mpesa.jpg' %}" alt="M-Pesa" class="mpesa-logo">
           <div>
             <div class="fw-bold" style="font-size:15px;">Pay via M-Pesa</div>
-            <div class="text-muted small">Lipa Na M-Pesa — STK Push</div>
+            <div class="text-muted small">Lipa Na M-Pesa | STK Push</div>
           </div>
         </div>
 
@@ -357,10 +357,10 @@
                      readonly
                      style="background:#f8fafc;cursor:default;">
             </div>
-            <div class="form-text">Monthly maintenance fee — fixed amount.</div>
+            <div class="form-text">Monthly maintenance fee | fixed amount.</div>
           </div>
 
-          <!-- Pay Button — links to # (STK push integration added later) -->
+          <!-- Pay Button | links to # (STK push integration added later) -->
           <a href="#" class="mpesa-btn mb-3"
              onclick="handlePay(event)">
             <img src="{% static 'img/mpesa.jpg' %}" alt="M-Pesa" style="height:22px;border-radius:4px;">
@@ -423,7 +423,7 @@ function handlePay(e) {
     btn.style.pointerEvents = 'none';
     btn.style.opacity = '0.85';
 
-    // Simulate processing — replace with real STK push call later
+    // Simulate processing | replace with real STK push call later
     setTimeout(() => {
         window.location.href = '/{{ tenant_slug }}/settings/billing/success/';
     }, 2000);

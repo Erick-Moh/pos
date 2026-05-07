@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load humanize %}
-{% block title %}{{ product.name }} — {{ sys.business_name }}{% endblock %}
+{% block title %}{{ product.name }} | {{ sys.business_name }}{% endblock %}
 {% block breadcrumb %}<a href="/{{ tenant.slug }}/inventory/" class="text-muted text-decoration-none">Inventory</a> / {{ product.name }}{% endblock %}
 
 {% block extra_head %}

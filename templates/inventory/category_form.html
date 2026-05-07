@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ action }} Category — {{ sys.business_name }}{% endblock %}
+{% block title %}{{ action }} Category | {{ sys.business_name }}{% endblock %}
 {% block breadcrumb %}
     <a href="/{{ tenant.slug }}/inventory/" class="text-muted text-decoration-none">Inventory</a> /
     <a href="/{{ tenant.slug }}/inventory/categories/" class="text-muted text-decoration-none">Categories</a>
@@ -40,7 +40,7 @@
                     <div class="mb-3">
                         <label class="form-label" for="{{ form.icon.id_for_label }}">Bootstrap Icon Class</label>
                         {{ form.icon }}
-                        <div class="form-text">e.g. <code>bi-box-seam</code> — see <a href="https://icons.getbootstrap.com" target="_blank">icons.getbootstrap.com ↗</a></div>
+                        <div class="form-text">e.g. <code>bi-box-seam</code> | see <a href="https://icons.getbootstrap.com" target="_blank">icons.getbootstrap.com ↗</a></div>
                     </div>
                     <div class="mb-4">
                         <label class="form-label" for="{{ form.description.id_for_label }}">Description</label>

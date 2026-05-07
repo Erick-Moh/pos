@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ action }} User — {{ sys.business_name }}{% endblock %}
+{% block title %}{{ action }} User | {{ sys.business_name }}{% endblock %}
 {% block breadcrumb %}
     <a href="/{{ tenant.slug }}/users/manage/" class="text-muted text-decoration-none">Users</a>
     / {{ action }} User
@@ -30,7 +30,7 @@
                     </div>
                     <div>
                         <h5 class="fw-bold mb-0">{{ action }} User</h5>
-                        <p class="text-muted small mb-0">Select role first — credential section updates automatically</p>
+                        <p class="text-muted small mb-0">Select role first | credential section updates automatically</p>
                     </div>
                 </div>
             </div>

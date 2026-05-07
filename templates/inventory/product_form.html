@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load humanize %}
-{% block title %}{{ action }} — {{ sys.business_name }}{% endblock %}
+{% block title %}{{ action }} | {{ sys.business_name }}{% endblock %}
 {% block breadcrumb %}
     <a href="/{{ tenant.slug }}/inventory/" class="text-muted text-decoration-none">Inventory</a> / {{ action }}
 {% endblock %}
@@ -65,7 +65,7 @@
                                 {% if obj and obj.image %}
                                 <div class="d-flex align-items-center gap-3 mb-2 p-2 rounded-3" style="background:var(--nexus-bg);border:1.5px dashed var(--nexus-border);">
                                     <img src="{{ obj.image.url }}" height="52" class="rounded" style="object-fit:cover;max-width:80px;">
-                                    <span class="text-muted small">Current image — upload below to replace</span>
+                                    <span class="text-muted small">Current image | upload below to replace</span>
                                 </div>
                                 {% endif %}
                                 {{ form.image }}
