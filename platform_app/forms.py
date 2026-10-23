@@ -2,7 +2,6 @@
 
 from django import forms
 from django.contrib.auth import get_user_model
-from tenants.models import Tenant
 
 User = get_user_model()
 
@@ -24,41 +23,6 @@ class PlatformLoginForm(forms.Form):
         })
     )
 
-
-class TenantForm(forms.ModelForm):
-    class Meta:
-        model = Tenant
-        fields = [
-            'name','owner_name', 'owner_email', 'owner_phone',
-            'plan', 'is_active', 'trial_ends_on', 'business_type'
-        ]
-        widgets = {
-            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Kamau Agrovet Nakuru'}),
-            'owner_name': forms.TextInput(attrs={'class': 'form-control'}),
-            'owner_email': forms.EmailInput(attrs={'class': 'form-control'}),
-            'owner_phone': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '+254...'}),
-            'plan': forms.Select(attrs={'class': 'form-select select2'}),
-            'business_type': forms.Select(attrs={'class': 'form-select select2'}),
-            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-            'trial_ends_on': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-        }
-        
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        required_fields = ['name', 'owner_name', 'owner_email', 'owner_phone', 'business_type']
-        for field in required_fields:
-            self.fields[field].required = True
-        
-    def clean_name(self):
-        name = self.cleaned_data['name']
-        stripped_name = name.strip().lower()
-        if not self.instance.name:
-            qs = Tenant.objects.filter(name__iexact=stripped_name)
-        else:
-            qs = Tenant.objects.exclude(pk=self.instance.pk).filter(name__iexact=stripped_name)
-        if qs.exists():
-            raise forms.ValidationError('A tenant with this business name already exists.')
-        return name
 
 class PlatformUserForm(forms.ModelForm):
     """Create / edit a platform staff account."""

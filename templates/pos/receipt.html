@@ -68,7 +68,18 @@
     <span>TOTAL:</span>
     <span>{{ sys.currency_symbol }} {{ sale.total_amount|floatformat:2|intcomma }}</span>
 </div>
+{% if sale.credit_portion > 0 and sale.amount_tendered > 0 %}
+<div class="row"><span>{{ sale.get_payment_method_display }} Paid:</span><span>{{ sys.currency_symbol }} {{ sale.amount_tendered|floatformat:2|intcomma }}</span></div>
+{% elif sale.amount_tendered > 0 %}
 <div class="row"><span>Paid ({{ sale.get_payment_method_display }}):</span><span>{{ sys.currency_symbol }} {{ sale.amount_tendered|floatformat:2|intcomma }}</span></div>
+{% endif %}
+{% if sale.credit_portion > 0 %}
+<div class="row bold"><span>Credit Deferred:</span><span>{{ sys.currency_symbol }} {{ sale.credit_portion|floatformat:2|intcomma }}</span></div>
+{% if sale.credit_due_date %}<div class="row"><span>&nbsp;&nbsp;Due Date:</span><span>{{ sale.credit_due_date|date:"d/m/Y" }}</span></div>{% endif %}
+{% if not sale.credit_paid %}
+<div class="row bold"><span>BALANCE DUE:</span><span>{{ sys.currency_symbol }} {{ sale.balance_due|floatformat:2|intcomma }}</span></div>
+{% endif %}
+{% endif %}
 {% if sale.change_given > 0 %}
 <div class="row"><span>Change:</span><span>{{ sys.currency_symbol }} {{ sale.change_given|floatformat:2|intcomma }}</span></div>
 {% endif %}
@@ -105,7 +116,7 @@
     <button onclick="window.print()" style="background:#0d6efd;color:#fff;border:none;padding:10px 24px;border-radius:6px;cursor:pointer;margin-right:8px;">
         Print Receipt
     </button>
-    <a href="/{{ tenant.slug }}/pos/terminal/" style="background:#6c757d;color:#fff;padding:10px 24px;border-radius:6px;text-decoration:none;">
+    <a href="/pos/terminal/" style="background:#6c757d;color:#fff;padding:10px 24px;border-radius:6px;text-decoration:none;">
         ← New Sale
     </a>
 </div>

@@ -290,6 +290,9 @@ Desktop.ini
 # JetBrains / PyCharm
 .idea/
 
+# ── Backup snapshots ─────────────────────────────────────────────────────────
+backups/snapshots/
+
 # ── Local dev overrides ───────────────────────────────────────────────────────
 local_settings.py
 *.local.py

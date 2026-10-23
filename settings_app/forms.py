@@ -26,7 +26,7 @@ def clean_plain_text(value):
 class SystemSettingForm(forms.ModelForm):
     class Meta:
         model = SystemSetting
-        exclude = ['updated_at','tenant']
+        exclude = ['updated_at']
         widgets = {
             'business_name': forms.TextInput(attrs={'class': 'form-control'}),
             'business_tagline': forms.TextInput(attrs={'class': 'form-control'}),

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load humanize %}
-{% block title %}Dashboard | {{ sys.business_name }}{% endblock %}
+{% block title %}Dashboard | {{ sys.business_name|default:"GetCore POS" }}{% endblock %}
 {% block breadcrumb %}<i class="bi bi-speedometer2 me-1"></i> Dashboard{% endblock %}
 
 {% block content %}
@@ -17,9 +17,9 @@
             {% endif %}, 
             {{ user.first_name|default:user.username }}!
         </h4>
-        <p class="text-muted small mb-0">{% now "l, d F Y" %} &bull; {{ sys.business_name }}</p>
+        <p class="text-muted small mb-0">{% now "l, d F Y" %} &bull; {{ sys.business_name|default:"GetCore POS" }}</p>
     </div>
-    <a href="/{{ tenant.slug }}/pos/terminal/" class="btn btn-nexus btn-lg px-4">
+    <a href="/pos/terminal/" class="btn btn-nexus btn-lg px-4">
         <i class="bi bi-cart3 me-2"></i>Open POS Terminal
     </a>
 </div>
@@ -94,7 +94,7 @@
         <div class="card border-0 shadow-sm">
             <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center pt-3">
                 <h6 class="fw-semibold mb-0"><i class="bi bi-clock-history me-2"></i>Recent Sales</h6>
-                <a href="/{{ tenant.slug }}/pos/sales/" class="btn btn-sm btn-outline-secondary">View All</a>
+                <a href="/pos/sales/" class="btn btn-sm btn-outline-secondary">View All</a>
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
@@ -111,7 +111,7 @@
                             {% for sale in recent_sales %}
                             <tr>
                                 <td class="ps-3">
-                                    <a href="/{{ tenant.slug }}/pos/sales/{{ sale.pk }}/" class="text-decoration-none fw-medium">
+                                    <a href="/pos/sales/{{ sale.pk }}/" class="text-decoration-none fw-medium">
                                         {{ sale.invoice_number }}
                                     </a>
                                     <br><small class="text-muted">{{ sale.created_at|timesince }} ago</small>
@@ -144,7 +144,7 @@
         <div class="card border-0 shadow-sm">
             <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center pt-3">
                 <h6 class="fw-semibold mb-0 text-warning"><i class="bi bi-exclamation-triangle me-2"></i>Low Stock</h6>
-                <a href="/{{ tenant.slug }}/inventory/?low_stock=1" class="btn btn-sm btn-outline-warning">View All</a>
+                <a href="/inventory/?low_stock=1" class="btn btn-sm btn-outline-warning">View All</a>
             </div>
             <div class="card-body p-0">
                 {% for product in low_stock %}

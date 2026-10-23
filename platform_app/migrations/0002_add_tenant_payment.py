@@ -8,7 +8,6 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('platform_app', '0001_initial'),
-        ('tenants', '0005_tenant_installation_fee_paid_tenant_monthly_fee_and_more'),
     ]
 
     operations = [

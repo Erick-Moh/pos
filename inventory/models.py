@@ -10,13 +10,6 @@ from django.utils import timezone
 
 class Category(models.Model):
     """Product category with optional parent (nested categories)."""
-    tenant = models.ForeignKey(
-        'tenants.Tenant',
-        on_delete=models.CASCADE,
-        related_name='+',
-        null=True,   # null during migration; set not-null after data backfill
-        db_index=True,
-    )
 
     name = models.CharField(max_length=150)
     parent = models.ForeignKey(
@@ -39,7 +32,7 @@ class Category(models.Model):
     class Meta:
         verbose_name_plural = 'Categories'
         ordering = ['name']
-        unique_together = [['tenant', 'name']]
+        unique_together = [['name']]
 
     def __str__(self):
         if self.parent:
@@ -54,13 +47,6 @@ class Category(models.Model):
 
 class Supplier(models.Model):
     """Product supplier / vendor record."""
-    tenant = models.ForeignKey(
-        'tenants.Tenant',
-        on_delete=models.CASCADE,
-        related_name='+',
-        null=True,   # null during migration; set not-null after data backfill
-        db_index=True,
-    )
 
     name = models.CharField(max_length=200)
     contact_person = models.CharField(max_length=150, blank=True, null=True)
@@ -84,13 +70,6 @@ class Product(models.Model):
     Core product/stock item model.
     Tracks buying price, selling price, stock level, and reorder alerts.
     """
-    tenant = models.ForeignKey(
-        'tenants.Tenant',
-        on_delete=models.CASCADE,
-        related_name='+',
-        null=True,   # null during migration; set not-null after data backfill
-        db_index=True,
-    )
 
     UNIT_CHOICES = [
         ('pcs', 'Pieces'),
@@ -237,13 +216,6 @@ class StockMovement(models.Model):
     """
     Audit trail for all stock changes (purchases, sales, adjustments, damages).
     """
-    tenant = models.ForeignKey(
-        'tenants.Tenant',
-        on_delete=models.CASCADE,
-        related_name='+',
-        null=True,   # null during migration; set not-null after data backfill
-        db_index=True,
-    )
 
     MOVEMENT_TYPES = [
         ('purchase', 'Purchase / Stock In'),

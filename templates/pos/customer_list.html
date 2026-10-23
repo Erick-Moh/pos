@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load humanize %}
-{% block title %}Customers | {{ tenant.name }}{% endblock %}
+{% block title %}Customers | {{ sys.business_name|default:"GetCore POS" }}{% endblock %}
 {% block breadcrumb %}<i class="bi bi-people me-1"></i> Customers{% endblock %}
 
 {% block extra_head %}
@@ -27,7 +27,7 @@
       <h4 class="fw-bold mb-0">Customers</h4>
       <p class="text-muted small mb-0">All staff can add and view customers. Credit settings require admin access.</p>
     </div>
-    <a href="/{{ tenant_slug }}/pos/customers/new/" class="btn btn-nexus btn-sm">
+    <a href="/pos/customers/new/" class="btn btn-nexus btn-sm">
       <i class="bi bi-person-plus me-1"></i>New Customer
     </a>
   </div>
@@ -41,7 +41,7 @@
       <input type="text" name="q" value="{{ q }}" class="form-control border-start-0 ps-0"
              placeholder="Search name, phone, email…" autocomplete="off">
       {% if q %}
-      <a href="/{{ tenant_slug }}/pos/customers/" class="btn btn-outline-secondary">
+      <a href="/pos/customers/" class="btn btn-outline-secondary">
         <i class="bi bi-x"></i>
       </a>
       {% endif %}
@@ -69,7 +69,7 @@
               <div class="d-flex align-items-center gap-2">
                 <div class="customer-avatar">{{ c.name.0|upper }}</div>
                 <div>
-                  <a href="/{{ tenant_slug }}/pos/customers/{{ c.pk }}/"
+                  <a href="/pos/customers/{{ c.pk }}/"
                      class="fw-semibold text-dark text-decoration-none">{{ c.name }}</a>
                   {% if c.email %}
                   <div class="small text-muted">{{ c.email }}</div>
@@ -101,17 +101,17 @@
             <td class="text-center small text-muted">{{ c.created_at|date:"d M Y" }}</td>
             <td class="text-end pe-3">
               <div class="d-flex gap-1 justify-content-end">
-                <a href="/{{ tenant_slug }}/pos/customers/{{ c.pk }}/"
+                <a href="/pos/customers/{{ c.pk }}/"
                    class="btn btn-sm btn-outline-secondary" title="View profile">
                   <i class="bi bi-eye"></i>
                 </a>
-                <a href="/{{ tenant_slug }}/pos/customers/{{ c.pk }}/edit/"
+                <a href="/pos/customers/{{ c.pk }}/edit/"
                    class="btn btn-sm btn-outline-primary" title="Edit">
                   <i class="bi bi-pencil"></i>
                 </a>
                 {% if user.is_admin_role %}
                 <button type="button" class="btn btn-sm btn-outline-danger" title="Deactivate"
-                        onclick="confirmDelete('{{ c.name|escapejs }}', '/{{ tenant_slug }}/pos/customers/{{ c.pk }}/delete/')">
+                        onclick="confirmDelete('{{ c.name|escapejs }}', '/pos/customers/{{ c.pk }}/delete/')">
                   <i class="bi bi-person-x"></i>
                 </button>
                 {% endif %}
@@ -133,10 +133,10 @@
     <i class="bi bi-people fs-1 text-muted opacity-25 d-block mb-3"></i>
     {% if q %}
       <p class="text-muted">No customers match "<strong>{{ q }}</strong>".</p>
-      <a href="/{{ tenant_slug }}/pos/customers/" class="btn btn-sm btn-outline-secondary">Clear search</a>
+      <a href="/pos/customers/" class="btn btn-sm btn-outline-secondary">Clear search</a>
     {% else %}
       <p class="text-muted mb-1">No customers yet.</p>
-      <a href="/{{ tenant_slug }}/pos/customers/new/" class="btn btn-nexus btn-sm">
+      <a href="/pos/customers/new/" class="btn btn-nexus btn-sm">
         <i class="bi bi-person-plus me-1"></i>Add First Customer
       </a>
     {% endif %}

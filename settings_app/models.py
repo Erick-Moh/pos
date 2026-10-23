@@ -13,13 +13,6 @@ class SystemSetting(models.Model):
     Singleton model — only ONE row should ever exist.
     Stores all business configuration for dynamic branding.
     """
-    tenant = models.ForeignKey(
-        'tenants.Tenant',
-        on_delete=models.CASCADE,
-        related_name='+',
-        null=True,   # null during migration; set not-null after data backfill
-        db_index=True,
-    )
 
 
     # ── Business Identity ──────────────────────────────────────────────────
@@ -112,28 +105,19 @@ class SystemSetting(models.Model):
         verbose_name_plural = 'System Settings'
         
     def save(self, *args, **kwargs):
-        if not self.business_name and self.tenant:
-            self.business_name = self.tenant.name
         super().save(*args, **kwargs)
 
     def __str__(self):
         return f'System Settings — {self.business_name}'
 
-    def clean(self):
-        """Enforce one SystemSetting per tenant."""
-        if not self.pk and self.tenant:
-            if SystemSetting.objects.filter(tenant=self.tenant).exists():
-                from django.core.exceptions import ValidationError
-                raise ValidationError('Only one SystemSetting per tenant is allowed.')
 
     @classmethod
-    def get_settings(cls, tenant):
+    def get_settings(cls):
         """
-        Safe tenant-scoped accessor.
-        Returns the settings object for the tenant, creating defaults if none exist.
+        Singleton accessor — returns the one SystemSetting row,
+        creating it with defaults if it doesn't exist yet.
         """
-        if tenant is None:
-            # Return a bare unsaved default for the landing/error pages
-            return cls()
-        obj, _ = cls.objects.get_or_create(tenant=tenant)
+        obj = cls.objects.first()
+        if obj is None:
+            obj = cls.objects.create()
         return obj

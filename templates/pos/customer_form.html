@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% load humanize %}
-{% block title %}{{ action }} Customer | {{ tenant.name }}{% endblock %}
+{% block title %}{{ action }} Customer | {{ sys.business_name|default:"GetCore POS" }}{% endblock %}
 {% block breadcrumb %}
-  <a href="/{{ tenant_slug }}/pos/customers/" class="text-decoration-none text-muted">
+  <a href="/pos/customers/" class="text-decoration-none text-muted">
     <i class="bi bi-people me-1"></i>Customers
   </a>
   <i class="bi bi-chevron-right mx-1 small"></i>
@@ -135,7 +135,7 @@
 
           <!-- Actions -->
           <div class="d-flex gap-2 justify-content-end">
-            <a href="{% if customer %}/{{ tenant_slug }}/pos/customers/{{ customer.pk }}/{% else %}/{{ tenant_slug }}/pos/customers/{% endif %}"
+            <a href="{% if customer %}/pos/customers/{{ customer.pk }}/{% else %}/pos/customers/{% endif %}"
                class="btn btn-light fw-medium">Cancel</a>
             <button type="submit" class="btn btn-nexus fw-semibold px-4">
               <i class="bi bi-{% if action == 'Create' %}person-plus{% else %}check-lg{% endif %} me-1"></i>

@@ -23,8 +23,12 @@ urlpatterns = [
     path('customers/<int:pk>/delete/',          views.customer_delete,   name='customer_delete'),
 
     # ── Credit Sales ──────────────────────────────────────────────────────
-    path('credits/',                            views.credit_sales_list, name='credit_sales_list'),
-    path('credits/<int:pk>/paid/',              views.mark_credit_paid,  name='mark_credit_paid'),
+    path('credits/',                            views.credit_sales_list,       name='credit_sales_list'),
+    path('credits/customers/',                  views.customer_credit_summary, name='customer_credit_summary'),
+    path('credits/<int:pk>/repay/',             views.record_repayment,        name='record_repayment'),
+
+    # ── Internal API (AJAX, login-required) ──────────────────────────────
+    path('api/credit-check/',                   views.credit_check,      name='credit_check'),
 
     # ── Print Agent API (token-auth, no session) ──────────────────────────
     path('api/print/heartbeat/',                print_api.heartbeat,      name='print_heartbeat'),

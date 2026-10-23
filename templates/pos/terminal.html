@@ -1,10 +1,19 @@
 {% extends "base.html" %}
 {% load humanize %}
-{% block title %}POS Terminal | {{ sys.business_name }}{% endblock %}
+{% block title %}POS Terminal | {{ sys.business_name|default:"GetCore POS" }}{% endblock %}
 {% block breadcrumb %}<i class="bi bi-cart3 me-1"></i> POS Terminal{% endblock %}
 
 {% block extra_head %}
 <style>
+/* ── Hide sidebar entirely on the terminal so content fills full width ── */
+#wrapper.sidebar-collapsed .sidebar {
+    width: 0 !important;
+    min-width: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    border: none !important;
+}
+
 /* ── Remove page padding so terminal bleeds edge-to-edge ── */
 .nexus-content { padding: 0 !important; overflow: hidden; }
 
@@ -155,12 +164,6 @@
     padding: 24px; text-align: center; gap: 8px;
 }
 .cart-empty i { font-size: 2.5rem; opacity: .35; }
-
-/* ─── Discount row ─── */
-.discount-strip {
-    display: flex; gap: 8px; padding: 8px 14px 4px;
-}
-.discount-strip label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 3px; }
 
 /* ─── Totals ─── */
 .totals-block { padding: 8px 14px 4px; }
@@ -382,7 +385,7 @@
                     <i class="bi bi-box-seam fs-1 d-block mb-2"></i>
                     No products found.
                     {% if user.is_admin_role %}
-                    <a href="/{{ tenant.slug }}/inventory/add/">Add your first product →</a>
+                    <a href="/inventory/add/">Add your first product →</a>
                     {% endif %}
                 </div>
                 {% endfor %}
@@ -445,31 +448,11 @@
         <!-- Footer -->
         <div class="cart-foot">
 
-            <!-- Discount -->
-            <div class="discount-strip">
-                <div class="flex-grow-1">
-                    <label class="form-label">Discount %</label>
-                    <input type="number" id="discountPercent"
-                           class="form-control form-control-sm"
-                           value="0" min="0" max="100" step="0.5" oninput="recalculate()">
-                </div>
-                <div class="flex-grow-1">
-                    <label class="form-label">Fixed ({{ currency }})</label>
-                    <input type="number" id="discountFixed"
-                           class="form-control form-control-sm"
-                           value="0" min="0" step="0.01" oninput="recalculate()">
-                </div>
-            </div>
-
             <!-- Totals -->
             <div class="totals-block">
                 <div class="tot-row">
                     <span class="text-muted">Subtotal</span>
                     <span id="subtotalDisplay">{{ currency }} 0.00</span>
-                </div>
-                <div class="tot-row">
-                    <span class="text-muted">Discount</span>
-                    <span id="discountDisplay" class="text-danger">− {{ currency }} 0.00</span>
                 </div>
                 <div class="tot-row">
                     <span class="text-muted">VAT ({{ vat_rate }}%)</span>
@@ -481,8 +464,8 @@
                 </div>
             </div>
 
-            <!-- Payment methods -->
-            <div class="pay-grid">
+            <!-- Payment methods (for the amount paid NOW) -->
+            <div class="pay-grid" id="payMethodGrid">
                 <div class="pay-btn active" data-method="cash" onclick="selectPayment(this)">
                     <i class="bi bi-cash"></i>Cash
                 </div>
@@ -500,16 +483,46 @@
                        placeholder="M-Pesa code e.g. QHX1234ABC">
             </div>
 
-            <!-- Cash tendered -->
-            <div id="cashTenderedRow" class="tendered-strip">
+            <!-- Amount paid now (replaces cash tendered) -->
+            <div class="tendered-strip" id="amountPaidRow">
                 <div class="input-group input-group-sm">
-                    <span class="input-group-text">{{ currency }} Paid</span>
+                    <span class="input-group-text">{{ currency }} Paid Now</span>
                     <input type="number" id="amountTendered" class="form-control"
-                           placeholder="0.00" step="0.01" min="0" oninput="calcChange()">
+                           placeholder="0.00" step="0.01" min="0"
+                           oninput="onAmountPaidChange()">
                 </div>
-                <div class="d-flex justify-content-between mt-1 small px-1">
+                <!-- Cash change row -->
+                <div class="d-flex justify-content-between mt-1 small px-1" id="changeRow">
                     <span class="text-muted">Change</span>
                     <span id="changeDisplay" class="fw-bold text-success">{{ currency }} 0.00</span>
+                </div>
+            </div>
+
+            <!-- Credit section (appears dynamically) -->
+            <div id="creditSection" class="d-none px-3 pb-2">
+                <!-- Status feedback -->
+                <div id="creditStatus" class="small py-1"></div>
+
+                <!-- Credit fields (shown only when eligible) -->
+                <div id="creditFields" class="d-none">
+                    <div class="mb-2">
+                        <label class="form-label small fw-medium mb-1">
+                            <i class="bi bi-hourglass-split me-1 text-warning"></i>Credit Amount
+                        </label>
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text">{{ currency }}</span>
+                            <input type="number" id="creditAmount" class="form-control"
+                                   readonly placeholder="0.00" step="0.01">
+                        </div>
+                        <div class="form-text">Balance deferred to credit — adjust "Paid Now" to change.</div>
+                    </div>
+                    <div>
+                        <label class="form-label small fw-medium mb-1">
+                            <i class="bi bi-calendar-event me-1"></i>Payment Due Date <span class="text-danger">*</span>
+                        </label>
+                        <input type="date" id="creditDueDate" class="form-control form-control-sm"
+                               onchange="updateChargeBtn()">
+                    </div>
                 </div>
             </div>
 
@@ -549,7 +562,7 @@
 const CURRENCY    = '{{ currency }}';
 const VAT_RATE    = {{ vat_rate }} / 100;
 const CSRF_TOKEN  = '{{ csrf_token }}';
-const PROCESS_URL = '/{{ tenant.slug }}/pos/process/';
+const PROCESS_URL = '/pos/process/';
 
 let cart            = [];
 let selectedPayment = 'cash';
@@ -568,6 +581,10 @@ function closeCart() {
 
 /* ─── Add to cart ─── */
 function addToCart(id, name, price, stock, unit, isService, isVatExempt) {
+    if (parseFloat(price) <= 0) {
+        showToast(`"${name}" has no price set. Update it in Inventory before selling.`, 'warning');
+        return;
+    }
     const existing = cart.find(i => i.product_id === id);
     if (existing) {
         if (!isService && existing.quantity >= stock) {
@@ -583,7 +600,7 @@ function addToCart(id, name, price, stock, unit, isService, isVatExempt) {
         cart.push({
             product_id: id, name,
             unit_price: parseFloat(price),
-            quantity: 1, stock, unit, isService, discount: 0,
+            quantity: 1, stock, unit, isService,
             is_vat_exempt: isVatExempt,
         });
     }
@@ -644,7 +661,7 @@ function renderCart() {
     emptyMsg.style.display = 'none';
 
     rowsEl.innerHTML = cart.map((item, idx) => {
-        const lineTotal = (item.unit_price * item.quantity - item.discount).toFixed(2);
+        const lineTotal = (item.unit_price * item.quantity).toFixed(2);
         return `
         <div class="cart-row">
             <div class="cart-row-info">
@@ -668,54 +685,143 @@ function renderCart() {
 
 /* ─── Totals ─── */
 function recalculate() {
-    const subtotal  = cart.reduce((s, i) => s + (i.unit_price * i.quantity - i.discount), 0);
-    const discPct   = parseFloat(document.getElementById('discountPercent').value) || 0;
-    const discFixed = parseFloat(document.getElementById('discountFixed').value)   || 0;
-    const discount  = Math.min(discPct > 0 ? subtotal * discPct / 100 : discFixed, subtotal);
-    const taxable   = subtotal - discount;
+    const subtotal = cart.reduce((s, i) => s + (i.unit_price * i.quantity), 0);
     const vat = cart.reduce((s, i) => {
         if (!i.is_vat_exempt) {
-            s += (i.unit_price * i.quantity - i.discount) * VAT_RATE;
+            s += (i.unit_price * i.quantity) * VAT_RATE;
         }
         return s;
     }, 0);
-    const total     = taxable + vat;
+    const total = subtotal + vat;
 
-    document.getElementById('subtotalDisplay').textContent  = `${CURRENCY} ${subtotal.toFixed(2)}`;
-    document.getElementById('discountDisplay').textContent  = `− ${CURRENCY} ${discount.toFixed(2)}`;
-    document.getElementById('vatDisplay').textContent       = `${CURRENCY} ${vat.toFixed(2)}`;
-    document.getElementById('totalDisplay').textContent     = `${CURRENCY} ${total.toFixed(2)}`;
-    document.getElementById('chargeBtnTotal').textContent   = `${CURRENCY} ${total.toFixed(2)}`;
-    document.getElementById('chargeBtn').disabled           = cart.length === 0;
+    document.getElementById('subtotalDisplay').textContent = `${CURRENCY} ${subtotal.toFixed(2)}`;
+    document.getElementById('vatDisplay').textContent      = `${CURRENCY} ${vat.toFixed(2)}`;
+    document.getElementById('totalDisplay').textContent    = `${CURRENCY} ${total.toFixed(2)}`;
+    document.getElementById('chargeBtnTotal').textContent  = `${CURRENCY} ${total.toFixed(2)}`;
 
-    calcChange();
+    onAmountPaidChange();
 }
 
-function calcChange() {
-    const total    = parseFloat(document.getElementById('totalDisplay').textContent.replace(CURRENCY, '').trim()) || 0;
-    const tendered = parseFloat(document.getElementById('amountTendered').value) || 0;
-    document.getElementById('changeDisplay').textContent = `${CURRENCY} ${Math.max(tendered - total, 0).toFixed(2)}`;
-}
-
-/* ─── Payment ─── */
+/* ─── Payment method ─── */
 function selectPayment(btn) {
     document.querySelectorAll('.pay-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     selectedPayment = btn.dataset.method;
     document.getElementById('mpesaCodeRow').classList.toggle('d-none', selectedPayment !== 'mpesa');
-    document.getElementById('cashTenderedRow').classList.toggle('d-none', selectedPayment !== 'cash');
+    // Changing payment method re-triggers the credit check
+    onAmountPaidChange();
+}
+
+/* ─── Amount paid now changed ─── */
+let creditCheckTimer = null;
+
+function onAmountPaidChange() {
+    const total   = parseFloat(document.getElementById('totalDisplay').textContent.replace(CURRENCY, '').trim()) || 0;
+    const paid    = parseFloat(document.getElementById('amountTendered').value) || 0;
+    const balance = parseFloat((total - paid).toFixed(2));
+
+    // Update cash change row
+    const changeRow = document.getElementById('changeRow');
+    if (selectedPayment === 'cash') {
+        changeRow.classList.remove('d-none');
+        document.getElementById('changeDisplay').textContent = `${CURRENCY} ${Math.max(paid - total, 0).toFixed(2)}`;
+    } else {
+        changeRow.classList.add('d-none');
+    }
+
+    // Hide credit section if paid in full or cart empty
+    const creditSection = document.getElementById('creditSection');
+    if (balance <= 0 || total === 0) {
+        creditSection.classList.add('d-none');
+        document.getElementById('creditFields').classList.add('d-none');
+        document.getElementById('creditAmount').value = '';
+        updateChargeBtn();
+        return;
+    }
+
+    // Balance remains — show credit section
+    creditSection.classList.remove('d-none');
+    document.getElementById('creditAmount').value = balance.toFixed(2);
+    document.getElementById('creditStatus').innerHTML =
+        `<span class="text-muted"><i class="bi bi-hourglass-split me-1"></i>Checking credit eligibility…</span>`;
+    document.getElementById('creditFields').classList.add('d-none');
+    updateChargeBtn();  // disable until check passes
+
+    // Debounce the API call
+    clearTimeout(creditCheckTimer);
+    const customerId = document.getElementById('customerSelect').value;
+    if (!customerId) {
+        document.getElementById('creditStatus').innerHTML =
+            `<span class="text-danger"><i class="bi bi-x-circle me-1"></i>Select a registered customer to defer the balance to credit.</span>`;
+        return;
+    }
+
+    creditCheckTimer = setTimeout(() => {
+        fetch(`/pos/api/credit-check/?customer_id=${encodeURIComponent(customerId)}&amount=${balance}`, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(r => r.json())
+        .then(data => {
+            const statusEl = document.getElementById('creditStatus');
+            const fieldsEl = document.getElementById('creditFields');
+            if (data.eligible) {
+                let info = `<span class="text-success"><i class="bi bi-check-circle me-1"></i>Credit approved for <strong>${data.customer_name}</strong>.`;
+                if (data.available !== null) {
+                    info += ` Available limit: ${CURRENCY} ${parseFloat(data.available).toFixed(2)}`;
+                }
+                info += `</span>`;
+                statusEl.innerHTML = info;
+                fieldsEl.classList.remove('d-none');
+            } else {
+                statusEl.innerHTML = `<span class="text-danger"><i class="bi bi-x-circle me-1"></i>${data.reason}</span>`;
+                fieldsEl.classList.add('d-none');
+            }
+            updateChargeBtn();
+        })
+        .catch(() => {
+            document.getElementById('creditStatus').innerHTML =
+                `<span class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>Could not verify credit. Check connection.</span>`;
+            updateChargeBtn();
+        });
+    }, 400);
+}
+
+function updateChargeBtn() {
+    const total   = parseFloat(document.getElementById('totalDisplay').textContent.replace(CURRENCY, '').trim()) || 0;
+    const paid    = parseFloat(document.getElementById('amountTendered').value) || 0;
+    const balance = parseFloat((total - paid).toFixed(2));
+
+    let canCharge = cart.length > 0;
+
+    if (balance > 0) {
+        // Credit required — fields must be visible and due date filled
+        const fieldsVisible = !document.getElementById('creditFields').classList.contains('d-none');
+        const dueDate = document.getElementById('creditDueDate').value;
+        canCharge = canCharge && fieldsVisible && !!dueDate;
+    }
+
+    document.getElementById('chargeBtn').disabled = !canCharge;
 }
 
 /* ─── Process ─── */
 function processSale() {
     if (cart.length === 0) { showToast('Cart is empty!', 'warning'); return; }
 
-    const total    = parseFloat(document.getElementById('totalDisplay').textContent.replace(CURRENCY, '').trim()) || 0;
-    const tendered = parseFloat(document.getElementById('amountTendered').value) || total;
+    const total   = parseFloat(document.getElementById('totalDisplay').textContent.replace(CURRENCY, '').trim()) || 0;
+    const paid    = parseFloat(document.getElementById('amountTendered').value) || 0;
+    const balance = parseFloat((total - paid).toFixed(2));
 
-    if (selectedPayment === 'cash' && tendered < total) {
-        showToast(`Tendered ${CURRENCY} ${tendered.toFixed(2)} is less than total ${CURRENCY} ${total.toFixed(2)}`, 'danger');
-        return;
+    // Final client-side guards
+    if (balance > 0) {
+        const fieldsVisible = !document.getElementById('creditFields').classList.contains('d-none');
+        if (!fieldsVisible) {
+            showToast('The balance cannot be deferred to credit. Collect full payment or select an eligible customer.', 'danger');
+            return;
+        }
+        if (!document.getElementById('creditDueDate').value) {
+            showToast('Please enter a payment due date for the credit balance.', 'danger');
+            return;
+        }
     }
 
     const modal = new bootstrap.Modal(document.getElementById('processingModal'));
@@ -729,14 +835,15 @@ function processSale() {
                 product_id: i.product_id,
                 quantity:   i.quantity,
                 unit_price: i.unit_price,
-                discount:   i.discount,
             })),
             payment_method:   selectedPayment,
-            amount_tendered:  tendered,
-            discount_percent: parseFloat(document.getElementById('discountPercent').value) || 0,
-            discount_amount:  parseFloat(document.getElementById('discountFixed').value)   || 0,
+            amount_tendered:  paid,
+            credit_portion:   balance > 0 ? balance : 0,
+            discount_percent: 0,
+            discount_amount:  0,
             customer_id:      document.getElementById('customerSelect').value || null,
             mpesa_code:       document.getElementById('mpesaCode')?.value     || '',
+            credit_due_date:  document.getElementById('creditDueDate')?.value || '',
             notes: '',
         }),
     })
@@ -768,6 +875,11 @@ $(document).ready(function () {
         theme: 'bootstrap-5',
         width: '100%',
         dropdownParent: $('#posCart'),
+    });
+
+    // Re-run credit check when customer changes
+    $('#customerSelect').on('change', function () {
+        onAmountPaidChange();
     });
 });
 

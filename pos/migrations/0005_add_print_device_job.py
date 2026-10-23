@@ -9,7 +9,6 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('pos', '0004_add_customer_notes'),
-        ('tenants', '0005_tenant_installation_fee_paid_tenant_monthly_fee_and_more'),
     ]
 
     operations = [

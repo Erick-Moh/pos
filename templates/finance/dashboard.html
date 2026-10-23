@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load humanize %}
-{% block title %}Finance | {{ sys.business_name }}{% endblock %}
+{% block title %}Finance | {{ sys.business_name|default:"GetCore POS" }}{% endblock %}
 {% block breadcrumb %}<i class="bi bi-graph-up-arrow me-1"></i> Finance Dashboard{% endblock %}
 
 {% block content %}
@@ -10,9 +10,9 @@
         <p class="text-muted small mb-0">{{ today|date:"l, d F Y" }}</p>
     </div>
     <div class="d-flex gap-2">
-        <a href="/{{ tenant.slug }}/finance/daily/" class="btn btn-outline-primary"><i class="bi bi-calendar-check me-1"></i>Daily COB</a>
-        <a href="/{{ tenant.slug }}/finance/monthly/" class="btn btn-outline-secondary"><i class="bi bi-bar-chart me-1"></i>Monthly</a>
-        <a href="/{{ tenant.slug }}/finance/yearly/" class="btn btn-outline-secondary"><i class="bi bi-graph-up me-1"></i>Yearly</a>
+        <a href="/finance/daily/" class="btn btn-outline-primary"><i class="bi bi-calendar-check me-1"></i>Daily COB</a>
+        <a href="/finance/monthly/" class="btn btn-outline-secondary"><i class="bi bi-bar-chart me-1"></i>Monthly</a>
+        <a href="/finance/yearly/" class="btn btn-outline-secondary"><i class="bi bi-graph-up me-1"></i>Yearly</a>
     </div>
 </div>
 
@@ -21,9 +21,23 @@
     <div class="col-sm-6 col-xl-3">
         <div class="card border-0 shadow-sm">
             <div class="card-body">
-                <p class="text-muted small mb-1">Today's Revenue</p>
+                <p class="text-muted small mb-1">Today's Total Sales</p>
                 <h3 class="fw-bold" style="color:var(--nexus-primary);">{{ currency }} {{ daily.total_sales|floatformat:2|intcomma }}</h3>
-                <small class="text-muted">{{ daily.total_transactions|intcomma }} transaction(s)</small>
+                <small class="text-muted">{{ daily.total_transactions|intcomma }} transaction(s) incl. credit</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <p class="text-muted small mb-1">Cash Received Today</p>
+                <h3 class="fw-bold text-success">{{ currency }} {{ cash_received_today|floatformat:2|intcomma }}</h3>
+                <small class="text-muted">
+                    Cash + M-Pesa + Card
+                    {% if daily.credit_repayments_received > 0 %}
+                    + <span class="text-warning">{{ currency }} {{ daily.credit_repayments_received|floatformat:2|intcomma }} repayments</span>
+                    {% endif %}
+                </small>
             </div>
         </div>
     </div>
@@ -31,7 +45,7 @@
         <div class="card border-0 shadow-sm">
             <div class="card-body">
                 <p class="text-muted small mb-1">Today's Gross Profit</p>
-                <h3 class="fw-bold text-success">{{ currency }} {{ daily.gross_profit|floatformat:2|intcomma }}</h3>
+                <h3 class="fw-bold text-info">{{ currency }} {{ daily.gross_profit|floatformat:2|intcomma }}</h3>
                 <small class="text-muted">After COGS</small>
             </div>
         </div>
@@ -42,15 +56,6 @@
                 <p class="text-muted small mb-1">Month Revenue</p>
                 <h3 class="fw-bold">{{ currency }} {{ month_revenue|floatformat:2|intcomma }}</h3>
                 <small class="text-muted">{{ month_count|intcomma }} transactions</small>
-            </div>
-        </div>
-    </div>
-    <div class="col-sm-6 col-xl-3">
-        <div class="card border-0 shadow-sm">
-            <div class="card-body">
-                <p class="text-muted small mb-1">Today's VAT Collected</p>
-                <h3 class="fw-bold text-info">{{ currency }} {{ daily.total_vat_collected|floatformat:2|intcomma }}</h3>
-                <small class="text-muted">KRA Compliance</small>
             </div>
         </div>
     </div>
@@ -98,9 +103,21 @@
                     </div>
                     {% endif %}
                     {% if daily.card_total > 0 %}
-                    <div class="d-flex justify-content-between small py-1">
+                    <div class="d-flex justify-content-between small border-bottom py-1">
                         <span><i class="bi bi-credit-card me-1 text-info"></i>Card</span>
                         <strong>{{ currency }} {{ daily.card_total|floatformat:2|intcomma }}</strong>
+                    </div>
+                    {% endif %}
+                    {% if daily.credit_total > 0 %}
+                    <div class="d-flex justify-content-between small border-bottom py-1">
+                        <span><i class="bi bi-hourglass-split me-1 text-warning"></i>Credit (awaited)</span>
+                        <strong class="text-warning">{{ currency }} {{ daily.credit_total|floatformat:2|intcomma }}</strong>
+                    </div>
+                    {% endif %}
+                    {% if daily.credit_repayments_received > 0 %}
+                    <div class="d-flex justify-content-between small border-top py-1 mt-1">
+                        <span><i class="bi bi-arrow-return-left me-1 text-success"></i>Credit Repayments In</span>
+                        <strong class="text-success">{{ currency }} {{ daily.credit_repayments_received|floatformat:2|intcomma }}</strong>
                     </div>
                     {% endif %}
                 </div>

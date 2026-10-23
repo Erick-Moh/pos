@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Users | {{ sys.business_name }}{% endblock %}
+{% block title %}Users | {{ sys.business_name|default:"GetCore POS" }}{% endblock %}
 {% block breadcrumb %}<i class="bi bi-people me-1"></i> User Management{% endblock %}
 
 {% block extra_head %}
@@ -26,7 +26,7 @@
         <h4 class="fw-bold mb-1">User Management</h4>
         <p class="text-muted small mb-0">Manage staff, cashiers and administrators</p>
     </div>
-    <a href="/{{ tenant.slug }}/users/manage/create/" class="btn btn-nexus">
+    <a href="/users/manage/create/" class="btn btn-nexus">
         <i class="bi bi-person-plus me-1"></i>Add User
     </a>
 </div>
@@ -100,12 +100,12 @@
                         </span>
                     </td>
                     <td class="text-center pe-4">
-                        <a href="/{{ tenant.slug }}/users/manage/{{ u.pk }}/edit/"
+                        <a href="/users/manage/{{ u.pk }}/edit/"
                            class="btn btn-sm btn-outline-primary" title="Edit">
                             <i class="bi bi-pencil"></i>
                         </a>
                         {% if u != request.user %}
-                        <a href="/{{ tenant.slug }}/users/manage/{{ u.pk }}/toggle/"
+                        <a href="/users/manage/{{ u.pk }}/toggle/"
                            class="btn btn-sm btn-outline-{% if u.is_active %}warning{% else %}success{% endif %}"
                            onclick="return confirm('{% if u.is_active %}Deactivate{% else %}Activate{% endif %} {{ u.username }}?')"
                            title="{% if u.is_active %}Deactivate{% else %}Activate{% endif %}">
@@ -119,7 +119,7 @@
                     <td colspan="7" class="text-center py-5 text-muted">
                         <i class="bi bi-people fs-1 d-block mb-2 opacity-25"></i>
                         No users yet.
-                        <a href="/{{ tenant.slug }}/users/manage/create/">Create the first user →</a>
+                        <a href="/users/manage/create/">Create the first user →</a>
                     </td>
                 </tr>
                 {% endfor %}

@@ -12,7 +12,6 @@ class Migration(migrations.Migration):
     dependencies = [
         ('inventory', '0002_initial'),
         ('pos', '0001_initial'),
-        ('tenants', '0001_initial'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 

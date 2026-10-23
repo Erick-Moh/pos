@@ -4,10 +4,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>{% block title %}{% if sys.business_name %}{{ sys.business_name }}{% else %}GetCore{% endif %}{% endblock %}</title>
+    <title>{% block title %}{% if sys.business_name %}{{ sys.business_name|default:"GetCore POS" }}{% else %}GetCore{% endif %}{% endblock %}</title>
 
     <!-- PWA Configuration -->
-    <link rel="manifest" href="/{% if tenant %}{{ tenant.slug }}/{% endif %}manifest.json">
+    <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="{% static 'img/manifest.png' %}">
     <link rel="icon" href="{% static 'img/favicon.ico' %}" type="image/x-icon">
     <meta name="theme-color" content="#1f2937">
@@ -18,7 +18,6 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     
     <link href="{% static 'css/style.css' %}" rel="stylesheet">
 
@@ -147,16 +146,16 @@
 
 {% if user.is_authenticated %}
 <!-- ═══════════════ SIDEBAR ═══════════════ -->
-<div class="d-flex" id="wrapper">
+<div class="d-flex{% if request.resolver_match.url_name == 'terminal' %} sidebar-collapsed{% endif %}" id="wrapper">
     <div class="sidebar d-flex flex-column flex-shrink-0 p-3 text-white" style="width:260px; min-height:100vh;">
 
         <!-- Brand -->
-        <a href="/{{ tenant.slug }}/pos/" class="d-flex align-items-center mb-4 text-white text-decoration-none">
+        <a href="/pos/" class="d-flex align-items-center mb-4 text-white text-decoration-none">
             {% if sys.logo %}
-                <img src="{{ sys.logo.url }}" alt="{{ sys.business_name }}" height="40" class="me-2">
+                <img src="{{ sys.logo.url }}" alt="{{ sys.business_name|default:"GetCore POS" }}" height="40" class="me-2 flex-shrink-0">
             {% else %}
-                <i class="bi bi-rocket-takeoff-fill fs-3 me-2" style="color:var(--nexus-accent);"></i>
-                <span class="fw-bold fs-5">{{ sys.business_name|default:"GetCore" }}</span>
+                <i class="bi bi-rocket-takeoff-fill fs-3 me-2 flex-shrink-0" style="color:var(--nexus-accent);"></i>
+                <span class="fw-bold fs-5 sidebar-brand-name">{{ sys.business_name|default:"GetCore" }}</span>
             {% endif %}
         </a>
 
@@ -164,11 +163,11 @@
 
         <!-- User badge -->
         <div class="d-flex align-items-center mb-3 px-1">
-            <div class="rounded-circle bg-white text-dark d-flex align-items-center justify-content-center me-2"
+            <div class="rounded-circle bg-white text-dark d-flex align-items-center justify-content-center me-2 flex-shrink-0"
                  style="width:32px;height:32px;font-size:0.8rem;font-weight:700;">
                 {{ user.first_name.0|default:user.username.0|upper }}
             </div>
-            <div>
+            <div class="sidebar-user-info">
                 <div class="small fw-semibold">{{ user.get_full_name|default:user.username }}</div>
                 <div class="small opacity-75">{{ user.get_role_display }}</div>
             </div>
@@ -180,57 +179,72 @@
         <ul class="nav nav-pills flex-column mb-auto nav-sidebar">
 
             <li class="nav-item mb-1">
-                <a href="/{{ tenant.slug }}/pos/" class="nav-link text-white {% if request.resolver_match.url_name == 'dashboard' and request.resolver_match.app_name == 'pos' %}active{% endif %}">
-                    <i class="bi bi-speedometer2 me-2"></i>Dashboard
+                <a href="/pos/" class="nav-link text-white {% if request.resolver_match.url_name == 'dashboard' and request.resolver_match.app_name == 'pos' %}active{% endif %}" title="Dashboard">
+                    <i class="bi bi-speedometer2 me-2"></i><span class="nav-link-text">Dashboard</span>
                 </a>
             </li>
             <li class="nav-item mb-1">
-                <a href="/{{ tenant.slug }}/pos/terminal/" class="nav-link text-white {% if request.resolver_match.url_name == 'terminal' %}active{% endif %}">
-                    <i class="bi bi-cart3 me-2"></i>POS Terminal
+                <a href="/pos/terminal/" class="nav-link text-white {% if request.resolver_match.url_name == 'terminal' %}active{% endif %}" title="POS Terminal">
+                    <i class="bi bi-cart3 me-2"></i><span class="nav-link-text">POS Terminal</span>
                 </a>
             </li>
             <li class="nav-item mb-1">
-                <a href="/{{ tenant.slug }}/pos/sales/" class="nav-link text-white {% if request.resolver_match.url_name == 'sale_list' %}active{% endif %}">
-                    <i class="bi bi-receipt me-2"></i>Sales History
+                <a href="#salesSubmenu" class="nav-link text-white {% if request.resolver_match.url_name == 'sale_list' or 'credit' in request.resolver_match.url_name|default:'' %}active{% endif %}"
+                   data-bs-toggle="collapse" role="button"
+                   aria-expanded="{% if request.resolver_match.url_name == 'sale_list' or 'credit' in request.resolver_match.url_name|default:'' %}true{% else %}false{% endif %}"
+                   title="Sales History">
+                    <i class="bi bi-receipt me-2 flex-shrink-0"></i>
+                    <span class="nav-link-text">Sales History <i class="bi bi-chevron-down ms-auto small"></i></span>
+                </a>
+                <div class="collapse {% if request.resolver_match.url_name == 'sale_list' or 'credit' in request.resolver_match.url_name|default:'' %}show{% endif %}" id="salesSubmenu">
+                    <ul class="nav flex-column ps-4 mt-1">
+                        <li class="nav-item">
+                            <a href="/pos/sales/" class="nav-link text-white-50 py-1 {% if request.resolver_match.url_name == 'sale_list' %}text-white fw-semibold{% endif %}">
+                                <i class="bi bi-list-ul me-2 small"></i><span class="nav-link-text">All Sales</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/pos/credits/" class="nav-link text-white-50 py-1 {% if 'credit' in request.resolver_match.url_name|default:'' %}text-white fw-semibold{% endif %}">
+                                <i class="bi bi-credit-card-2-back me-2 small"></i><span class="nav-link-text">Credit Sales</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </li>
+            <li class="nav-item mb-1">
+                <a href="/inventory/" class="nav-link text-white {% if request.resolver_match.app_name == 'inventory' %}active{% endif %}" title="Inventory">
+                    <i class="bi bi-boxes me-2"></i><span class="nav-link-text">Inventory</span>
                 </a>
             </li>
             <li class="nav-item mb-1">
-                <a href="/{{ tenant.slug }}/inventory/" class="nav-link text-white {% if request.resolver_match.app_name == 'inventory' %}active{% endif %}">
-                    <i class="bi bi-boxes me-2"></i>Inventory
-                </a>
-            </li>
-            <li class="nav-item mb-1">
-                <a href="/{{ tenant.slug }}/pos/customers/" class="nav-link text-white {% if 'customer' in request.resolver_match.url_name|default:'' %}active{% endif %}">
-                    <i class="bi bi-people me-2"></i>Customers
+                <a href="/pos/customers/" class="nav-link text-white {% if request.resolver_match.url_name|default:'' in 'customer_list,customer_detail,customer_create,customer_edit,customer_delete' %}active{% endif %}" title="Customers">
+                    <i class="bi bi-people me-2"></i><span class="nav-link-text">Customers</span>
                 </a>
             </li>
 
             {% if user.is_admin_role %}
-            <hr class="border-white opacity-25 my-2">
-            <small class="text-white opacity-50 px-2 mb-1 text-uppercase" style="font-size:0.7rem;">Management</small>
+            <hr class="border-white opacity-25 my-2 sidebar-section-label">
+            <small class="sidebar-section-label text-white opacity-50 px-2 mb-1 text-uppercase" style="font-size:0.7rem;">Management</small>
 
             <li class="nav-item mb-1">
-                <a href="/{{ tenant.slug }}/finance/" class="nav-link text-white {% if request.resolver_match.app_name == 'finance' %}active{% endif %}">
-                    <i class="bi bi-graph-up-arrow me-2"></i>Finance
+                <a href="/finance/" class="nav-link text-white {% if request.resolver_match.app_name == 'finance' %}active{% endif %}" title="Finance">
+                    <i class="bi bi-graph-up-arrow me-2"></i><span class="nav-link-text">Finance</span>
                 </a>
             </li>
             <li class="nav-item mb-1">
-                <a href="/{{ tenant.slug }}/users/manage/" class="nav-link text-white {% if request.resolver_match.url_name == 'user_list' %}active{% endif %}">
-                    <i class="bi bi-people me-2"></i>Users
+                <a href="/users/manage/" class="nav-link text-white {% if request.resolver_match.url_name == 'user_list' %}active{% endif %}" title="Users">
+                    <i class="bi bi-people me-2"></i><span class="nav-link-text">Users</span>
                 </a>
             </li>
             <li class="nav-item mb-1">
-                <a href="/{{ tenant.slug }}/settings/" class="nav-link text-white {% if request.resolver_match.app_name == 'settings_app' and request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
-                    <i class="bi bi-gear me-2"></i>Settings
+                <a href="/settings/" class="nav-link text-white {% if request.resolver_match.app_name == 'settings_app' and request.resolver_match.url_name == 'dashboard' %}active{% endif %}" title="Settings">
+                    <i class="bi bi-gear me-2"></i><span class="nav-link-text">Settings</span>
                 </a>
             </li>
             <li class="nav-item mb-1">
-                <a href="/{{ tenant.slug }}/settings/billing/history/"
-                   class="nav-link text-white {% if request.resolver_match.url_name == 'billing_checkout' or request.resolver_match.url_name == 'billing_success' or request.resolver_match.url_name == 'billing_history' %}active{% endif %}">
-                    <i class="bi bi-credit-card me-2"></i>Billing
-                    {% if tenant.plan == 'trial' and tenant.trial_ends_on %}
-                    <span class="badge bg-warning text-dark ms-auto" style="font-size:9px;">Trial</span>
-                    {% endif %}
+                <a href="/settings/billing/history/"
+                   class="nav-link text-white {% if request.resolver_match.url_name == 'billing_checkout' or request.resolver_match.url_name == 'billing_success' or request.resolver_match.url_name == 'billing_history' %}active{% endif %}" title="Billing">
+                    <i class="bi bi-credit-card me-2"></i><span class="nav-link-text">Billing</span>
                 </a>
             </li>
             {% endif %}
@@ -238,8 +252,8 @@
 
         <hr class="border-white opacity-25">
 
-        <a href="/{{ tenant.slug }}/users/logout/" class="nav-link text-white px-2">
-            <i class="bi bi-box-arrow-left me-2"></i>Logout
+        <a href="/logout/" class="nav-link text-white px-2" title="Logout">
+            <i class="bi bi-box-arrow-left me-2"></i><span class="nav-link-text">Logout</span>
         </a>
     </div>
 
@@ -260,7 +274,7 @@
             </nav>
             <div class="d-flex align-items-center gap-2 ms-auto">
                 {% if low_stock_alert_count %}
-                <a href="/{{ tenant.slug }}/inventory/?low_stock=1"
+                <a href="/inventory/?low_stock=1"
                    class="btn btn-sm btn-warning position-relative"
                    title="{{ low_stock_alert_count }} product(s) low on stock">
                     <i class="bi bi-exclamation-triangle-fill me-1"></i>
@@ -276,10 +290,10 @@
                             data-bs-toggle="dropdown" aria-expanded="false"
                             title="Notifications">
                         <i class="bi bi-bell-fill"></i>
-                        {% if tenant_unread_count > 0 %}
+                        {% if app_unread_count > 0 %}
                         <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
                               style="font-size:9px;" id="notif-badge">
-                            {{ tenant_unread_count }}
+                            {{ app_unread_count }}
                         </span>
                         {% endif %}
                     </button>
@@ -290,17 +304,17 @@
                         <div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom"
                              style="background:#f8fafc;border-radius:14px 14px 0 0;">
                             <span class="fw-semibold small">Notifications</span>
-                            {% if tenant_unread_count > 0 %}
+                            {% if app_unread_count > 0 %}
                             <button class="btn btn-link btn-sm text-primary p-0 small fw-medium"
                                     id="markAllReadBtn"
-                                    data-url="/{{ tenant.slug }}/settings/notifications/mark-all-read/">
+                                    data-url="/settings/notifications/mark-all-read/">
                                 Mark all read
                             </button>
                             {% endif %}
                         </div>
                         <!-- Notification Items -->
-                        {% if tenant_notifications %}
-                            {% for notif in tenant_notifications %}
+                        {% if app_notifications %}
+                            {% for notif in app_notifications %}
                             <div class="notif-item d-flex align-items-start gap-2 px-3 py-2 border-bottom {% if not notif.is_read %}bg-primary bg-opacity-5{% endif %}"
                                  style="cursor:pointer;" data-notif-id="{{ notif.pk }}">
                                 <div class="flex-shrink-0 mt-1">
@@ -336,7 +350,7 @@
                         {% endif %}
                         <!-- Footer -->
                         <div class="text-center py-2" style="background:#f8fafc;border-radius:0 0 14px 14px;">
-                            <a href="/{{ tenant.slug }}/settings/notifications/" class="small text-primary text-decoration-none fw-medium">
+                            <a href="/settings/notifications/" class="small text-primary text-decoration-none fw-medium">
                                 View all notifications
                             </a>
                         </div>
@@ -345,13 +359,13 @@
                 {% endif %}
                 <!-- ── End Notification Bell ─────────────────────────── -->
 
-                <a href="/{{ tenant.slug }}/users/profile/" class="d-flex align-items-center gap-2 text-decoration-none text-reset">
+                <a href="/users/profile/" class="d-flex align-items-center gap-2 text-decoration-none text-reset">
                     <div class="sidebar-user-badge" style="background:rgba(var(--nexus-primary-rgb),.12);color:var(--nexus-primary);border-color:rgba(var(--nexus-primary-rgb),.25);">
                         {{ user.first_name.0|default:user.username.0|upper }}
                     </div>
                     <span class="small fw-medium d-none d-md-inline">{{ user.get_full_name|default:user.username }}</span>
                 </a>
-                <a href="/{{ tenant.slug }}/users/logout/" class="btn btn-sm btn-outline-secondary" title="Logout">
+                <a href="/logout/" class="btn btn-sm btn-outline-secondary" title="Logout">
                     <i class="bi bi-box-arrow-right"></i>
                 </a>
             </div>
@@ -415,7 +429,7 @@
   // Check if we're on the POS dashboard page
   function isPosDashboard() {
     const path = window.location.pathname;
-    // Only show on /tenant_slug/pos/ (dashboard)
+    // Only show on /pos/ (dashboard)
     // Match: /seniors-place/pos/ or /kenchu-bookshop/pos/
     return /\/[^\/]+\/pos\/?$/.test(path);
   }
@@ -561,12 +575,8 @@
   });
 </script>
 
-<!-- Sidebar Toggle -->
+<!-- Sidebar Toggle handled by main.js initSidebar() -->
 <script>
-  document.getElementById('sidebarToggle')?.addEventListener('click', function() {
-    document.getElementById('wrapper').classList.toggle('sidebar-collapsed');
-  });
-
   $(document).ready(function() {
     $('.select2').select2({ theme: 'bootstrap-5', width: '100%' });
   });

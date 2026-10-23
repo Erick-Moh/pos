@@ -25,13 +25,6 @@ def generate_device_token():
 
 class Customer(models.Model):
     """Optional customer record for loyalty / credit tracking."""
-    tenant = models.ForeignKey(
-        'tenants.Tenant',
-        on_delete=models.CASCADE,
-        related_name='+',
-        null=True,   # null during migration; set not-null after data backfill
-        db_index=True,
-    )
 
     name = models.CharField(max_length=200)
     phone = models.CharField(max_length=20, blank=True, null=True)
@@ -60,12 +53,16 @@ class Customer(models.Model):
 
     @property
     def outstanding_balance(self):
-        """Total unpaid credit across all incomplete credit sales."""
+        """True outstanding amount: sum of credit portions minus all repayments made."""
         from django.db.models import Sum
-        result = self.sales.filter(
-            payment_method='credit', credit_paid=False, status='completed'
-        ).aggregate(total=Sum('total_amount'))
-        return result['total'] or Decimal('0')
+        unpaid_sales = self.sales.filter(
+            credit_portion__gt=0, credit_paid=False, status='completed'
+        )
+        total_credit = unpaid_sales.aggregate(total=Sum('credit_portion'))['total'] or Decimal('0')
+        total_repaid = CreditRepayment.objects.filter(
+            sale__in=unpaid_sales
+        ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+        return max(Decimal('0'), total_credit - total_repaid)
 
     @property
     def available_credit(self):
@@ -80,21 +77,13 @@ class Sale(models.Model):
     A completed transaction / sale.
     eTIMS-ready with fields for KRA invoice number, QR code, and fiscal signature.
     """
-    tenant = models.ForeignKey(
-        'tenants.Tenant',
-        on_delete=models.CASCADE,
-        related_name='+',
-        null=True,   # null during migration; set not-null after data backfill
-        db_index=True,
-    )
 
 
     PAYMENT_METHOD_CHOICES = [
-        ('cash', 'Cash'),
-        ('mpesa', 'M-Pesa'),
-        ('card', 'Credit / Debit Card'),
-        ('credit', 'Store Credit'),
-        ('split', 'Split Payment'),
+        ('cash',   'Cash'),
+        ('mpesa',  'M-Pesa'),
+        ('card',   'Credit / Debit Card'),
+        ('credit', 'Store Credit (Pay Later)'),
     ]
 
     STATUS_CHOICES = [
@@ -162,6 +151,12 @@ class Sale(models.Model):
     is_fiscalized = models.BooleanField(default=False)
 
     # ── Credit / Pay-Later Fields ──────────────────────────────────────────
+    # NOTE: credit_paid is kept as a DB field for fast querying.
+    # It is set to True automatically when total repayments >= credit_portion.
+    credit_portion = models.DecimalField(
+        max_digits=14, decimal_places=2, default=Decimal('0'),
+        help_text='Amount deferred to credit (0 = no credit component on this sale).'
+    )
     credit_due_date = models.DateField(
         null=True, blank=True,
         help_text='Date by which the customer must settle this credit sale.'
@@ -201,6 +196,21 @@ class Sale(models.Model):
 
     def __str__(self):
         return f'{self.invoice_number} | {self.total_amount} | {self.payment_method}'
+
+    @property
+    def amount_repaid(self):
+        from django.db.models import Sum
+        return self.repayments.aggregate(total=Sum('amount'))['total'] or Decimal('0')
+
+    @property
+    def balance_due(self):
+        if self.credit_portion <= Decimal('0'):
+            return Decimal('0')
+        return max(Decimal('0'), self.credit_portion - self.amount_repaid)
+
+    @property
+    def is_fully_paid(self):
+        return self.balance_due <= Decimal('0')
 
     def calculate_totals(self):
         """
@@ -258,6 +268,50 @@ class SaleItem(models.Model):
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+#  CREDIT REPAYMENT  (partial / full payment against a credit sale)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class CreditRepayment(models.Model):
+    """
+    Records a single payment (partial or full) against a credit sale.
+    Multiple repayments can exist per Sale. When their sum reaches
+    Sale.total_amount, the sale is automatically marked credit_paid=True.
+    """
+
+    PAYMENT_METHOD_CHOICES = [
+        ('cash',  'Cash'),
+        ('mpesa', 'M-Pesa'),
+        ('card',  'Credit / Debit Card'),
+    ]
+
+    sale = models.ForeignKey(
+        Sale, on_delete=models.CASCADE, related_name='repayments'
+    )
+    amount = models.DecimalField(max_digits=14, decimal_places=2)
+    payment_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES, default='cash')
+    reference = models.CharField(
+        max_length=100, blank=True, null=True,
+        help_text='M-Pesa code, cheque number, or other payment reference.'
+    )
+    notes = models.TextField(blank=True, null=True)
+    recorded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='credit_repayments_recorded'
+    )
+    recorded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['recorded_at']
+        verbose_name = 'Credit Repayment'
+        verbose_name_plural = 'Credit Repayments'
+
+    def __str__(self):
+        return f'Repayment {self.amount} on {self.sale.invoice_number} @ {self.recorded_at:%d %b %Y}'
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 #  PRINT DEVICE + PRINT JOB  (local print agent bridge)
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -266,11 +320,6 @@ class PrintDevice(models.Model):
     Represents one installation of the GetCore Print Agent on a local computer.
     Each device holds a unique token used to authenticate polling requests.
     """
-    tenant = models.ForeignKey(
-        'tenants.Tenant',
-        on_delete=models.CASCADE,
-        related_name='print_devices',
-    )
     name = models.CharField(
         max_length=100,
         help_text='Friendly name, e.g. "Front Counter Printer" or "Kitchen Printer".',
@@ -310,13 +359,13 @@ class PrintDevice(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering = ['tenant', 'name']
+        ordering = ['name']
         verbose_name = 'Print Device'
         verbose_name_plural = 'Print Devices'
 
     def __str__(self):
         status = 'online' if self.is_online else 'offline'
-        return f'{self.name} ({self.tenant.name}) — {status}'
+        return f'{self.name} — {status}'
 
     def refresh_online_status(self):
         """Mark device offline if last heartbeat > 90 seconds ago."""

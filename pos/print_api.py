@@ -42,7 +42,7 @@ def _get_device(request):
         return None, JsonResponse({'error': 'Missing device token.'}, status=401)
 
     try:
-        device = PrintDevice.objects.select_related('tenant').get(
+        device = PrintDevice.objects.get(
             token=token, is_active=True
         )
     except PrintDevice.DoesNotExist:
@@ -198,12 +198,10 @@ def device_status(request, device_id):
     AJAX endpoint used by the POS terminal UI to check if the printer is ready
     before attempting to queue a print job. Returns JSON.
     """
-    from tenants.mixins import get_tenant_or_404
-
-    tenant = get_tenant_or_404(request)
+    
 
     try:
-        device = PrintDevice.objects.get(pk=device_id, tenant=tenant, is_active=True)
+        device = PrintDevice.objects.get(pk=device_id, is_active=True)
     except PrintDevice.DoesNotExist:
         return JsonResponse({'ready': False, 'reason': 'Device not found.'})
 
@@ -320,17 +318,17 @@ def build_receipt_text(sale, sys_settings, width=42):
     return '\n'.join(lines)
 
 
-def queue_print_job(sale, tenant):
+def queue_print_job(sale):
     """
-    Helper used after a sale is completed.
-    Finds the active print device for this tenant, renders the receipt,
-    and creates a PrintJob. Silently skips if no device is configured or online.
+    Helper called after a sale is completed.
+    Finds the active print device, renders the receipt, and creates a PrintJob.
+    Silently skips if no device is configured or online.
     Returns the PrintJob (or None).
     """
     from settings_app.models import SystemSetting
 
     device = PrintDevice.objects.filter(
-        tenant=tenant, is_active=True, is_online=True
+        is_active=True, is_online=True
     ).order_by('-last_seen').first()
 
     if not device:
@@ -340,7 +338,7 @@ def queue_print_job(sale, tenant):
     if not device.is_ready:
         return None  # Agent offline or no printer
 
-    sys_settings = SystemSetting.get_settings(tenant)
+    sys_settings = SystemSetting.get_settings()
     receipt_text = build_receipt_text(sale, sys_settings)
 
     job = PrintJob.objects.create(

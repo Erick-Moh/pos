@@ -194,7 +194,7 @@ def fiscalise_sale_if_enabled(sale):
     """
     try:
         from settings_app.models import SystemSetting
-        sys_settings = SystemSetting.get_settings(getattr(sale, 'tenant', None))
+        sys_settings = SystemSetting.get_settings()
 
         if not sys_settings.enable_etims:
             logger.debug('[eTIMS] eTIMS disabled in SystemSetting. Skipping.')

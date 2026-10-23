@@ -9,7 +9,6 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('tenants', '0005_tenant_installation_fee_paid_tenant_monthly_fee_and_more'),
     ]
 
     operations = [

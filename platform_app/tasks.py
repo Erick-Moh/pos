@@ -1,55 +1,45 @@
 from celery import shared_task
-from django.core.mail import EmailMultiAlternatives, send_mail
+from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.conf import settings
 from django.utils import timezone
 
 
 @shared_task(bind=True, max_retries=3)
-def send_tenant_welcome_email(self, tenant_name, contact_email, contact_name):
+def send_welcome_email(self, business_name, contact_email, contact_name):
+    """Send a plain welcome email to a new instance contact."""
     try:
         context = {
             'contact_name': contact_name,
-            'tenant_name': tenant_name,
+            'business_name': business_name,
         }
 
-        html_message = render_to_string('emails/tenant_welcome_email.html', context)
+        html_message = render_to_string('emails/welcome_email.html', context)
 
-        text_message = f"""
-Welcome to GetCore POS!
-
-Hello {contact_name},
-
-Great news! Your business "{tenant_name}" has been successfully created in our system.
-
-We're setting up your account and will send you further communication via email soon with:
-- Your login credentials
-- Access instructions
-- Getting started guide
-- Support contact information
-
-Please watch your inbox for our next email.
-
-This is an automated message, please do not reply to this email.
-
-© {timezone.now().year} GetCore POS. All rights reserved.
-        """
-
-        email = EmailMultiAlternatives(
-            subject=f'Your GetCore POS Business Account Created - {tenant_name}',
-            body=text_message,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            to=[contact_email]
+        text_message = (
+            f"Welcome to GetCore POS\n\n"
+            f"Hello {contact_name},\n\n"
+            f'Your business "{business_name}" has been set up in GetCore POS.\n\n'
+            f"You will receive a follow-up email with your login credentials and "
+            f"getting-started instructions.\n\n"
+            f"This is an automated message. Please do not reply.\n\n"
+            f"(c) {timezone.now().year} GetCore POS. All rights reserved."
         )
 
-        email.attach_alternative(html_message, "text/html")
+        email = EmailMultiAlternatives(
+            subject=f'Your GetCore POS Account — {business_name}',
+            body=text_message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[contact_email],
+        )
+        email.attach_alternative(html_message, 'text/html')
         result = email.send()
 
         return {
             'status': 'success',
-            'tenant_name': tenant_name,
+            'business_name': business_name,
             'email': contact_email,
-            'sent': result
+            'sent': result,
         }
 
     except Exception as exc:
@@ -58,302 +48,10 @@ This is an automated message, please do not reply to this email.
         except self.MaxRetriesExceededError:
             return {
                 'status': 'failed',
-                'tenant_name': tenant_name,
-                'error': str(exc)
+                'business_name': business_name,
+                'error': str(exc),
             }
 
 
-# ════════════════════════════════════════════════════════════════════════
-#  TENANT SUBSCRIPTION / BILLING TASKS
-#  These run on a Celery Beat schedule (configured via django-celery-beat
-#  admin or the CELERY_BEAT_SCHEDULE dict in settings.py).
-# ════════════════════════════════════════════════════════════════════════
-
-@shared_task(bind=True, max_retries=3)
-def deactivate_expired_trial_tenants(self):
-    """
-    Daily task: find all trial tenants whose trial_ends_on has elapsed
-    and mark them inactive.
-    Schedule: every day at 01:00 Africa/Nairobi (add via Beat admin).
-    """
-    from tenants.models import Tenant
-    from .models import Notification
-    today = timezone.now().date()
-    expired = Tenant.objects.filter(
-        plan='trial',
-        is_active=True,
-        trial_ends_on__lt=today,
-    )
-    deactivated = []
-    for tenant in expired:
-        tenant.is_active = False
-        tenant.save(update_fields=['is_active', 'updated_at'])
-        deactivated.append(tenant.reference_code)
-        # In-system notifications
-        Notification.create_for_tenant(
-            tenant=tenant,
-            notification_type='trial_ended',
-            title='Your free trial has ended',
-            message=(
-                f'Your 30-day free trial expired on {today.strftime("%d %B %Y")}. '
-                f'Your account has been temporarily locked. To restore access, '
-                f'please pay the monthly maintenance fee of KES {tenant.monthly_fee:,.0f}.'
-            ),
-            action_url=f'/{tenant.slug}/billing/checkout/',
-        )
-        Notification.create_for_platform(
-            tenant=tenant,
-            notification_type='trial_expired_admin',
-            title=f'Trial expired: {tenant.name}',
-            message=(
-                f'Client "{tenant.name}" (Ref: {tenant.reference_code}) trial expired on '
-                f'{today.strftime("%d %B %Y")}. Account auto-locked.'
-            ),
-            action_url=f'/platform/clients/{tenant.pk}/',
-        )
-        if tenant.owner_email:
-            _send_account_deactivation_email(tenant)
-    return {'deactivated': deactivated, 'count': len(deactivated)}
-
-
-@shared_task(bind=True, max_retries=3)
-def deactivate_unpaid_tenants(self):
-    """
-    Daily task: deactivate paid-plan tenants whose payment_due_date has elapsed.
-    Schedule: every day at 01:15 Africa/Nairobi.
-    """
-    from tenants.models import Tenant
-    from .models import Notification
-    today = timezone.now().date()
-    overdue = Tenant.objects.filter(
-        is_active=True,
-        payment_due_date__lt=today,
-    ).exclude(plan='trial')
-    deactivated = []
-    for tenant in overdue:
-        tenant.is_active = False
-        tenant.save(update_fields=['is_active', 'updated_at'])
-        deactivated.append(tenant.reference_code)
-        Notification.create_for_tenant(
-            tenant=tenant,
-            notification_type='account_deactivated',
-            title='Account locked — maintenance fee overdue',
-            message=(
-                f'Your GetCore account has been suspended because the monthly maintenance '
-                f'fee of KES {tenant.monthly_fee:,.0f} was not received by {today.strftime("%d %B %Y")}. '
-                f'Please make payment to restore full access immediately.'
-            ),
-            action_url=f'/{tenant.slug}/billing/checkout/',
-        )
-        Notification.create_for_platform(
-            tenant=tenant,
-            notification_type='payment_defaulted',
-            title=f'Payment defaulted: {tenant.name}',
-            message=(
-                f'Client "{tenant.name}" (Ref: {tenant.reference_code}) has defaulted on their '
-                f'KES {tenant.monthly_fee:,.0f} monthly fee. Account auto-locked on {today.strftime("%d %B %Y")}.'
-            ),
-            action_url=f'/platform/clients/{tenant.pk}/',
-        )
-        if tenant.owner_email:
-            _send_account_deactivation_email(tenant)
-    return {'deactivated': deactivated, 'count': len(deactivated)}
-
-
-@shared_task(bind=True, max_retries=3)
-def send_trial_expiry_reminders(self):
-    """
-    Daily task: send reminder emails + in-system notifications to trial tenants
-    whose trial expires in exactly 5 days or exactly 2 days.
-    Schedule: every day at 08:00 Africa/Nairobi.
-    """
-    from tenants.models import Tenant
-    from .models import Notification
-    today = timezone.now().date()
-    reminders_sent = []
-
-    for days_left in [5, 2]:
-        target_date = today + timezone.timedelta(days=days_left)
-        tenants_expiring = Tenant.objects.filter(
-            plan='trial',
-            is_active=True,
-            trial_ends_on=target_date,
-        )
-
-        for tenant in tenants_expiring:
-            ntype = 'trial_expiry_5d' if days_left == 5 else 'trial_expiry_2d'
-            Notification.create_for_tenant(
-                tenant=tenant,
-                notification_type=ntype,
-                title=f'Trial expires in {days_left} day{"s" if days_left > 1 else ""}',
-                message=(
-                    f'Your free trial ends on {tenant.trial_ends_on.strftime("%d %B %Y")} '
-                    f'({days_left} day{"s" if days_left > 1 else ""} remaining). '
-                    f'Subscribe to a paid plan (KES {tenant.monthly_fee:,.0f}/month) to continue '
-                    f'without interruption. One-time installation: KES 15,000.'
-                ),
-                action_url=f'/{tenant.slug}/billing/checkout/',
-            )
-            # Email reminder
-            if tenant.owner_email:
-                try:
-                    subject = (
-                        f'GetCore trial expires in {days_left} day{"s" if days_left > 1 else ""} — {tenant.name}'
-                    )
-                    body = (
-                        f'Hello {tenant.owner_name or "there"},\n\n'
-                        f'Your free trial for "{tenant.name}" expires on '
-                        f'{tenant.trial_ends_on.strftime("%d %B %Y")} ({days_left} day{"s" if days_left > 1 else ""} remaining).\n\n'
-                        f'Subscribe now to keep your data and continue using GetCore:\n'
-                        f'  Monthly maintenance: KES {tenant.monthly_fee:,.0f}/month\n'
-                        f'  One-time installation: KES 15,000\n\n'
-                        f'Contact us to upgrade:\n'
-                        f'  Email: hello@getcore.co.ke\n'
-                        f'  Phone: +254 712 499 775\n\n'
-                        f'© {timezone.now().year} GetCore Solutions.'
-                    )
-                    send_mail(
-                        subject=subject,
-                        message=body,
-                        from_email=settings.DEFAULT_FROM_EMAIL,
-                        recipient_list=[tenant.owner_email],
-                        fail_silently=True,
-                    )
-                except Exception:
-                    pass
-            reminders_sent.append({'tenant': tenant.reference_code, 'days_left': days_left})
-
-    return {'reminders_sent': reminders_sent, 'count': len(reminders_sent)}
-
-
-@shared_task(bind=True, max_retries=3)
-def send_payment_due_reminders(self):
-    """
-    Daily task: remind active paid-plan tenants whose next payment is due
-    in exactly 5 days or exactly 2 days, but only if that month has NOT
-    already been paid (checks TenantPayment carry-forward records).
-    Schedule: every day at 08:30 Africa/Nairobi.
-    """
-    from tenants.models import Tenant
-    from .models import Notification, TenantPayment
-    import calendar
-
-    today = timezone.now().date()
-    reminders_sent = []
-
-    for days_left in [5, 2]:
-        target_date = today + timezone.timedelta(days=days_left)
-
-        # Find active, non-trial tenants whose payment_due_date is exactly
-        # 5 or 2 days away
-        tenants_due = Tenant.objects.filter(
-            is_active=True,
-            payment_due_date=target_date,
-        ).exclude(plan='trial')
-
-        for tenant in tenants_due:
-            # Check if the upcoming month is already covered by a payment
-            # (carry-forward means a tenant could have paid in advance)
-            due_year  = target_date.year
-            due_month = target_date.month
-            already_paid = TenantPayment.objects.filter(
-                tenant=tenant,
-                year=due_year,
-                month=due_month,
-            ).exists()
-
-            if already_paid:
-                continue  # Already covered — no reminder needed
-
-            month_name = calendar.month_name[due_month]
-            ntype = 'payment_due'
-
-            # In-system notification
-            Notification.create_for_tenant(
-                tenant=tenant,
-                notification_type=ntype,
-                title=f'Payment due in {days_left} day{"s" if days_left > 1 else ""}',
-                message=(
-                    f'Your GetCore maintenance fee of KES {tenant.monthly_fee:,.0f} '
-                    f'for {month_name} {due_year} is due on '
-                    f'{target_date.strftime("%d %B %Y")} '
-                    f'({days_left} day{"s" if days_left > 1 else ""} remaining). '
-                    f'Pay via M-Pesa to avoid service interruption.'
-                ),
-                action_url=f'/{tenant.slug}/settings/billing/',
-            )
-
-            # Platform admin notification
-            Notification.create_for_platform(
-                tenant=tenant,
-                notification_type='payment_due',
-                title=f'Payment due soon: {tenant.name}',
-                message=(
-                    f'"{tenant.name}" (Ref: {tenant.reference_code}) has a payment of '
-                    f'KES {tenant.monthly_fee:,.0f} due on {target_date.strftime("%d %B %Y")} '
-                    f'({days_left} day{"s" if days_left > 1 else ""} away). Not yet paid.'
-                ),
-                action_url=f'/platform/clients/{tenant.pk}/',
-            )
-
-            # Email reminder
-            if tenant.owner_email:
-                try:
-                    send_mail(
-                        subject=(
-                            f'GetCore payment due in {days_left} day{"s" if days_left > 1 else ""} '
-                            f'— {tenant.name}'
-                        ),
-                        message=(
-                            f'Hello {tenant.owner_name or "there"},\n\n'
-                            f'This is a reminder that your GetCore monthly maintenance fee is due soon.\n\n'
-                            f'  Amount : KES {tenant.monthly_fee:,.0f}\n'
-                            f'  Period : {month_name} {due_year}\n'
-                            f'  Due on : {target_date.strftime("%d %B %Y")} ({days_left} day{"s" if days_left > 1 else ""} away)\n\n'
-                            f'Pay via M-Pesa by logging in to your GetCore account:\n'
-                            f'  Settings → Billing → Make a Payment\n\n'
-                            f'If you have already made payment, please disregard this message.\n\n'
-                            f'Need help?\n'
-                            f'  Email: hello@getcore.co.ke\n'
-                            f'  Phone: +254 712 499 775\n\n'
-                            f'© {timezone.now().year} GetCore Solutions.'
-                        ),
-                        from_email=settings.DEFAULT_FROM_EMAIL,
-                        recipient_list=[tenant.owner_email],
-                        fail_silently=True,
-                    )
-                except Exception:
-                    pass
-
-            reminders_sent.append({
-                'tenant': tenant.reference_code,
-                'days_left': days_left,
-                'due_date': target_date.isoformat(),
-            })
-
-    return {'reminders_sent': reminders_sent, 'count': len(reminders_sent)}
-
-
-def _send_account_deactivation_email(tenant):
-    """Helper: notify tenant owner their account has been deactivated."""
-    subject = f'Your GetCore account has been deactivated — {tenant.name}'
-    body = (
-        f'Hello {tenant.owner_name or "there"},\n\n'
-        f'Your GetCore POS account for "{tenant.name}" has been deactivated because '
-        f'the payment deadline has elapsed.\n\n'
-        f'To reactivate your account and restore access, please contact us:\n'
-        f'  Email: hello@getcore.co.ke\n'
-        f'  Phone: +254 712 499 775\n\n'
-        f'Your data is safe and will be restored upon payment.\n\n'
-        f'© {timezone.now().year} GetCore Solutions.'
-    )
-    try:
-        send_mail(
-            subject=subject,
-            message=body,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[tenant.owner_email],
-            fail_silently=True,
-        )
-    except Exception:
-        pass
+# Keep legacy alias so any existing queued task names resolve
+send_tenant_welcome_email = send_welcome_email

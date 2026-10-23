@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load humanize %}
-{% block title %}Sales History | {{ sys.business_name }}{% endblock %}
+{% block title %}Sales History | {{ sys.business_name|default:"GetCore POS" }}{% endblock %}
 {% block breadcrumb %}<i class="bi bi-receipt me-1"></i> Sales History{% endblock %}
 
 {% block content %}
@@ -9,7 +9,7 @@
         <h4 class="fw-bold mb-0">Sales History</h4>
         <p class="text-muted small mb-0">Total: <strong>{{ currency }} {{ total_revenue|floatformat:2|intcomma }}</strong> across {{ sales|length|intcomma }} transactions</p>
     </div>
-    <a href="/{{ tenant.slug }}/pos/terminal/" class="btn">
+    <a href="/pos/terminal/" class="btn">
         <i class="bi bi-plus-lg me-1"></i>New Sale
     </a>
 </div>
@@ -46,7 +46,7 @@
             </div>
             <div class="col-auto d-flex align-items-end">
                 <button type="submit" class="btn btn-sm btn-outline-primary me-1">Filter</button>
-                <a href="/{{ tenant.slug }}/pos/sales/" class="btn btn-sm btn-outline-secondary">Reset</a>
+                <a href="/pos/sales/" class="btn btn-sm btn-outline-secondary">Reset</a>
             </div>
         </form>
     </div>
@@ -72,7 +72,7 @@
                 {% for sale in sales %}
                 <tr>
                     <td class="ps-3">
-                        <a href="/{{ tenant.slug }}/pos/sales/{{ sale.pk }}/" class="fw-medium text-decoration-none">
+                        <a href="/pos/sales/{{ sale.pk }}/" class="fw-medium text-decoration-none">
                             {{ sale.invoice_number }}
                         </a>
                         {% if sale.is_fiscalized %}
@@ -86,10 +86,15 @@
                         <span class="badge
                             {% if sale.payment_method == 'mpesa' %}bg-success
                             {% elif sale.payment_method == 'card' %}bg-info
-                            {% elif sale.payment_method == 'cash' %}bg-secondary
-                            {% else %}bg-warning{% endif %}">
+                            {% elif sale.payment_method == 'credit' %}bg-warning text-dark
+                            {% else %}bg-secondary{% endif %}">
                             {{ sale.get_payment_method_display }}
                         </span>
+                        {% if sale.credit_portion > 0 and sale.payment_method != 'credit' %}
+                            <span class="badge bg-warning text-dark ms-1" title="Partial credit">
+                                + Credit
+                            </span>
+                        {% endif %}
                     </td>
                     <td>
                         <span class="badge
@@ -101,11 +106,11 @@
                     </td>
                     <td class="text-end fw-semibold">{{ currency }} {{ sale.total_amount|floatformat:2|intcomma }}</td>
                     <td class="text-center pe-3">
-                        <a href="/{{ tenant.slug }}/pos/receipt/{{ sale.pk }}/" class="btn btn-sm btn-outline-secondary" title="Print Receipt" target="_blank">
+                        <a href="/pos/receipt/{{ sale.pk }}/" class="btn btn-sm btn-outline-secondary" title="Print Receipt" target="_blank">
                             <i class="bi bi-printer"></i>
                         </a>
                         {% if user.is_admin_role and sale.status == 'completed' %}
-                        <a href="/{{ tenant.slug }}/pos/sales/{{ sale.pk }}/void/" class="btn btn-sm btn-outline-danger" title="Void">
+                        <a href="/pos/sales/{{ sale.pk }}/void/" class="btn btn-sm btn-outline-danger" title="Void">
                             <i class="bi bi-x-circle"></i>
                         </a>
                         {% endif %}

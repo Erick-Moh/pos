@@ -1,0 +1,242 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff Login | {{ sys.business_name|default:"GetCore POS" }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="{% static 'css/style.css' %}" rel="stylesheet">
+    <style>
+        :root {
+            --primary: {{ sys.primary_color|default:"#10b981" }};
+            --primary-rgb: 16,185,129;
+        }
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Trebuchet MS', Trebuchet, Arial, sans-serif;
+            padding: 12px;
+        }
+        .login-wrap { width: 100%; max-width: 800px; }
+        .login-card {
+            border: none; border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 20px 50px rgba(0,0,0,.5);
+        }
+        .login-brand {
+            background: linear-gradient(160deg, var(--primary) 0%, #059669 100%);
+            padding: 28px 24px;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            min-height: 100%;
+            position: relative; overflow: hidden;
+            color: white;
+        }
+        .login-brand::before {
+            content: '';
+            position: absolute; inset: 0;
+            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.06'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        }
+        .brand-icon {
+            width: 56px; height: 56px; border-radius: 14px;
+            background: rgba(255,255,255,.2);
+            display: flex; align-items: center; justify-content: center;
+            margin-bottom: 12px; font-size: 1.6rem;
+            box-shadow: 0 6px 18px rgba(0,0,0,.2);
+        }
+        .login-brand h2 { font-size: 1.25rem; font-weight: 700; text-align: center; margin: 0 0 4px; }
+        .login-brand p  { font-size: 12px; opacity: .75; text-align: center; margin: 0; }
+        .brand-divider  { width: 36px; height: 2px; background: rgba(255,255,255,.3); border-radius: 2px; margin: 12px auto; }
+        .brand-meta     { font-size: 11px; opacity: .6; text-align: center; }
+
+        .login-form-panel { padding: 28px 30px; background: white; }
+
+        .login-label {
+            font-size: 10px; font-weight: 700;
+            text-transform: uppercase; letter-spacing: .06em;
+            color: #64748b; margin-bottom: 5px; display: block;
+        }
+        .login-input {
+            border: 1.5px solid #e2e8f0; border-radius: 8px;
+            padding: 9px 12px; font-size: 13px; width: 100%;
+            font-family: 'Trebuchet MS', Trebuchet, Arial, sans-serif;
+            transition: border-color .18s, box-shadow .18s;
+        }
+        .login-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(var(--primary-rgb),.12);
+            outline: none;
+        }
+
+        /* PIN display — override global style.css which adds a border box */
+        .pin-display {
+            display: flex !important; justify-content: center; gap: 14px;
+            margin: 6px 0 14px;
+            border: none !important; background: none !important;
+            padding: 0 !important; min-height: unset !important;
+            font-size: unset !important; letter-spacing: unset !important;
+        }
+        .pin-dot {
+            width: 14px; height: 14px; border-radius: 50%;
+            border: 2px solid #cbd5e1;
+            background: transparent;
+            transition: all .2s;
+        }
+        .pin-dot.filled {
+            background: var(--primary);
+            border-color: var(--primary);
+            transform: scale(1.15);
+            box-shadow: 0 0 0 3px rgba(var(--primary-rgb),.15);
+        }
+
+        /* PIN pad */
+        .pin-grid {
+            display: grid; grid-template-columns: repeat(3, 1fr);
+            gap: 6px; max-width: 200px; margin: 0 auto 14px;
+        }
+        .pin-btn {
+            border: 1.5px solid #e2e8f0; border-radius: 10px;
+            background: white; padding: 10px;
+            font-size: 1rem; font-weight: 600; color: #1e293b;
+            cursor: pointer; transition: all .15s;
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Trebuchet MS', Trebuchet, Arial, sans-serif;
+        }
+        .pin-btn:hover  { background: var(--primary); color: white; border-color: var(--primary); }
+        .pin-btn:active { transform: scale(.95); }
+        .pin-btn.action { font-size: .8rem; color: #64748b; }
+
+        .login-btn {
+            width: 100%; padding: 11px;
+            background: var(--primary); color: white; border: none;
+            border-radius: 10px; font-size: 14px; font-weight: 700;
+            cursor: pointer; transition: all .2s;
+            font-family: 'Trebuchet MS', Trebuchet, Arial, sans-serif;
+            box-shadow: 0 4px 12px rgba(var(--primary-rgb),.35);
+        }
+        .login-btn:hover { filter: brightness(1.06); transform: translateY(-1px); }
+
+        .switch-link {
+            text-align: center; margin-top: 14px;
+            font-size: 12px; color: #64748b;
+        }
+        .switch-link a { color: var(--primary); text-decoration: none; font-weight: 600; }
+        .switch-link a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+
+<div class="login-wrap">
+    <div class="card login-card">
+        <div class="row g-0">
+
+            <!-- Brand panel -->
+            <div class="col-md-4 login-brand">
+                {% if sys.logo %}
+                <div class="brand-icon"><img src="{{ sys.logo.url }}" height="44" style="object-fit:contain;max-width:56px;"></div>
+                {% else %}
+                <div class="brand-icon" style="font-size:2rem; font-weight:700; color:white;">G</div>
+                {% endif %}
+                <h2>{{ sys.business_name|default:"GetCore" }}</h2>
+            </div>
+
+            <!-- Form panel -->
+            <div class="col-md-8 login-form-panel">
+                <h4 class="fw-bold mb-1" style="font-size:1.1rem;">Staff Login</h4>
+                <p class="text-muted mb-3" style="font-size:12px;">Enter your username and PIN to sign in.</p>
+
+                {% for message in messages %}
+                {% with tag=message.tags %}
+                <div class="alert py-2 mb-3
+                    {% if tag == 'success' %}alert-success
+                    {% elif tag == 'error' or tag == 'danger' %}alert-danger
+                    {% elif tag == 'warning' %}alert-warning
+                    {% else %}alert-info{% endif %}"
+                     style="border-radius:10px;font-size:13px;">
+                    {{ message }}
+                </div>
+                {% endwith %}
+                {% endfor %}
+
+                <form method="post" id="staffForm">
+                    {% csrf_token %}
+
+                    <div class="mb-3">
+                        <label class="login-label">Username</label>
+                        <input type="text" name="username" class="login-input"
+                               placeholder="Enter your username"
+                               value="{{ form.username.value|default:'' }}"
+                               autocomplete="username" autofocus>
+                        {% if form.username.errors %}
+                        <div class="text-danger small mt-1">{{ form.username.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="login-label">4-Digit PIN</label>
+                        <div class="pin-display">
+                            <div class="pin-dot" id="dot0"></div>
+                            <div class="pin-dot" id="dot1"></div>
+                            <div class="pin-dot" id="dot2"></div>
+                            <div class="pin-dot" id="dot3"></div>
+                        </div>
+                        <input type="hidden" name="pin" id="pinInput">
+                    </div>
+
+
+                    <div class="pin-grid">
+                        {% for n in "123456789" %}
+                        <button type="button" class="pin-btn" data-digit="{{ n }}">{{ n }}</button>
+                        {% endfor %}
+                        <button type="button" class="pin-btn action" data-action="clear">CLR</button>
+                        <button type="button" class="pin-btn" data-digit="0">0</button>
+                        <button type="button" class="pin-btn action" data-action="del">DEL</button>
+                    </div>
+
+                    {% if turnstile_site_key %}
+                    <div class="cf-turnstile mb-3" data-sitekey="{{ turnstile_site_key }}" data-theme="dark"></div>
+                    {% endif %}
+
+                    <button type="submit" class="login-btn">Sign In</button>
+                </form>
+
+                <div class="switch-link">
+                    Manager? <a href="{% url 'login_admin' %}">Sign in here</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+{% if turnstile_site_key %}
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+{% endif %}
+<script>
+const MAX_PIN = 4;
+let pin = '';
+
+function updatePinDisplay() {
+    for (let i = 0; i < MAX_PIN; i++) {
+        document.getElementById('dot' + i).classList.toggle('filled', i < pin.length);
+    }
+    document.getElementById('pinInput').value = pin;
+}
+
+document.querySelectorAll('.pin-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const digit  = btn.dataset.digit;
+        const action = btn.dataset.action;
+        if (digit && pin.length < MAX_PIN) pin += digit;
+        else if (action === 'del')   pin = pin.slice(0, -1);
+        else if (action === 'clear') pin = '';
+        updatePinDisplay();
+    });
+});
+
+updatePinDisplay();
+</script>
+</body>
+</html>

@@ -8,8 +8,8 @@ from django.shortcuts import redirect
 
 EXEMPT_SUBSTRINGS = [
     '/change-credentials/',
-    '/logout/',
-    '/login/',
+    '/logout',
+    '/login',
     '/platform/',
     '/django-admin/',
     '/static/',
@@ -23,15 +23,10 @@ class ForceCredentialChangeMiddleware:
 
     def __call__(self, request):
         if request.user.is_authenticated:
-            path = request.path_info
-            tenant = getattr(request, 'tenant', None)
-
-            # Only enforce inside an active tenant scope
-            if tenant and getattr(request.user, 'must_change_credentials', False):
+            if getattr(request.user, 'must_change_credentials', False):
+                path = request.path_info
                 is_exempt = any(s in path for s in EXEMPT_SUBSTRINGS)
-                if not is_exempt and not (request.user.is_staff and request.user.is_superuser):
-                    # Build the URL directly — the 'users' namespace only
-                    # exists under /<slug>/users/ so we cannot use reverse().
-                    return redirect(f'/{tenant.slug}/users/change-credentials/')
+                if not is_exempt and not request.user.is_superuser:
+                    return redirect('/users/change-credentials/')
 
         return self.get_response(request)

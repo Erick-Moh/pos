@@ -8,25 +8,12 @@
 <div class="d-flex justify-content-between align-items-start mb-4">
     <div>
         <h4 class="fw-bold mb-1">Platform Overview</h4>
-        <p class="text-muted small mb-0">All clients · All transactions · Real-time</p>
+        <p class="text-muted small mb-0">Instance statistics · Real-time</p>
     </div>
-    <a href="{% url 'platform:tenant_create' %}" class="btn btn-platform px-4">
-        <i class="bi bi-plus-lg me-1"></i>New Client
-    </a>
 </div>
 
 <!-- KPI row -->
 <div class="row g-3 mb-4">
-    <div class="col-sm-6 col-xl-3">
-        <div class="p-kpi">
-            <div class="p-kpi-icon" style="background:rgba(16,185,129,.1);">
-                <i class="bi bi-buildings" style="color:#10b981;"></i>
-            </div>
-            <div class="p-kpi-value">{{ active_tenants }}</div>
-            <div class="p-kpi-label">Active Clients</div>
-            <div class="mt-2 small text-muted">{{ total_tenants }} total · +{{ new_this_month }} this month</div>
-        </div>
-    </div>
     <div class="col-sm-6 col-xl-3">
         <div class="p-kpi">
             <div class="p-kpi-icon" style="background:rgba(59,130,246,.1);">
@@ -34,7 +21,6 @@
             </div>
             <div class="p-kpi-value">KSh {{ today_revenue|floatformat:0|intcomma }}</div>
             <div class="p-kpi-label">Revenue Today</div>
-            <div class="mt-2 small text-muted">Across all clients</div>
         </div>
     </div>
     <div class="col-sm-6 col-xl-3">
@@ -44,7 +30,6 @@
             </div>
             <div class="p-kpi-value">KSh {{ month_revenue|floatformat:0|intcomma }}</div>
             <div class="p-kpi-label">Revenue This Month</div>
-            <div class="mt-2 small text-muted">All clients combined</div>
         </div>
     </div>
     <div class="col-sm-6 col-xl-3">
@@ -54,109 +39,29 @@
             </div>
             <div class="p-kpi-value">{{ total_users|intcomma }}</div>
             <div class="p-kpi-label">Total Users</div>
-            <div class="mt-2 small text-muted">{{ total_products|intcomma }} products catalogued</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="p-kpi">
+            <div class="p-kpi-icon" style="background:rgba(16,185,129,.1);">
+                <i class="bi bi-boxes" style="color:#10b981;"></i>
+            </div>
+            <div class="p-kpi-value">{{ total_products|intcomma }}</div>
+            <div class="p-kpi-label">Products</div>
         </div>
     </div>
 </div>
 
-<div class="row g-4">
-
-    <!-- 7-day chart -->
-    <div class="col-lg-7">
-        <div class="card border-0 shadow-sm h-100">
-            <div class="card-header border-0 pt-3 d-flex justify-content-between align-items-center">
-                <h6 class="fw-semibold mb-0">Platform Revenue — Last 7 Days</h6>
-                <span class="badge badge-active">All clients</span>
-            </div>
-            <div class="card-body pt-0">
-                <canvas id="revenueChart" height="120"></canvas>
-            </div>
-        </div>
+<!-- 7-day chart -->
+<div class="card border-0 shadow-sm">
+    <div class="card-header border-0 pt-3">
+        <h6 class="fw-semibold mb-0">Revenue — Last 7 Days</h6>
     </div>
-
-    <!-- Top clients -->
-    <div class="col-lg-5">
-        <div class="card border-0 shadow-sm h-100">
-            <div class="card-header border-0 pt-3">
-                <h6 class="fw-semibold mb-0">Top Clients This Month</h6>
-            </div>
-            <div class="card-body p-0">
-                {% for t in top_tenants %}
-                <div class="d-flex align-items-center justify-content-between px-4 py-2 border-bottom">
-                    <div class="d-flex align-items-center gap-3">
-                        <div style="width:8px;height:8px;border-radius:50%;background:#10b981;"></div>
-                        <div>
-                            <div class="fw-medium small">{{ t.tenant__name }}</div>
-                            <div class="text-muted" style="font-size:11px;">{{ t.tx_count }} transactions</div>
-                        </div>
-                    </div>
-                    <div class="fw-bold small">KSh {{ t.revenue|floatformat:0|intcomma }}</div>
-                </div>
-                {% empty %}
-                <div class="text-center text-muted py-4 small">No sales data yet.</div>
-                {% endfor %}
-            </div>
-        </div>
+    <div class="card-body pt-0">
+        <canvas id="revenueChart" height="80"></canvas>
     </div>
-
-    <!-- Recent clients -->
-    <div class="col-12">
-        <div class="card border-0 shadow-sm">
-            <div class="card-header border-0 pt-3 d-flex justify-content-between align-items-center">
-                <h6 class="fw-semibold mb-0">Recently Added Clients</h6>
-                <a href="{% url 'platform:tenant_list' %}" class="btn btn-sm btn-outline-secondary">View All</a>
-            </div>
-            <div class="table-responsive">
-                <table class="table p-table mb-0">
-                    <thead>
-                        <tr>
-                            <th class="ps-4">Client</th>
-                            <th>Access Key</th>
-                            <th>Plan</th>
-                            <th>Status</th>
-                            <th>Added</th>
-                            <th class="pe-4 text-end">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for t in recent_tenants %}
-                        <tr>
-                            <td class="ps-4 fw-semibold">{{ t.name }}</td>
-                            <td>
-                                <code class="small">{{ t.slug }}</code>
-                                <a href="/{{ t.slug }}/pos/" target="_blank"
-                                   class="ms-1 text-muted" title="Open workspace">
-                                    <i class="bi bi-box-arrow-up-right" style="font-size:11px;"></i>
-                                </a>
-                            </td>
-                            <td>
-                                <span class="badge {% if t.plan == 'enterprise' %}badge-plan{% elif t.plan == 'trial' %}badge-trial{% else %}badge-plan{% endif %}">
-                                    {{ t.get_plan_display }}
-                                </span>
-                            </td>
-                            <td>
-                                <span class="badge {% if t.is_active %}badge-active{% else %}badge-inactive{% endif %}">
-                                    {% if t.is_active %}Active{% else %}Inactive{% endif %}
-                                </span>
-                            </td>
-                            <td class="text-muted small">{{ t.created_at|date:"d M Y" }}</td>
-                            <td class="pe-4 text-end">
-                                <a href="{% url 'platform:tenant_detail' t.pk %}"
-                                   class="btn btn-sm btn-outline-secondary">
-                                    <i class="bi bi-eye"></i>
-                                </a>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr><td colspan="6" class="text-center text-muted py-4">No clients yet.</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
 </div>
+
 {% endblock %}
 
 {% block extra_scripts %}

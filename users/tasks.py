@@ -11,11 +11,10 @@ User = get_user_model()
 
 
 @shared_task(bind=True, max_retries=3)
-def send_welcome_email(self, user_id, username, credential_type, credential_value, tenant_name, tenant_slug):
+def send_welcome_email(self, user_id, username, credential_type, credential_value, business_name):
     try:
         user = User.objects.get(id=user_id)
 
-        # Determine credential label based on type
         if credential_type == 'pin':
             credential_label = 'PIN'
             credential_hint = 'You will be prompted to change your PIN on first login.'
@@ -29,70 +28,41 @@ def send_welcome_email(self, user_id, username, credential_type, credential_valu
             'credential_type': credential_label,
             'credential_value': credential_value,
             'credential_hint': credential_hint,
-            'tenant_name': tenant_name,
-            'tenant_slug': tenant_slug,
-            'login_url': f'{settings.SITE_URL}/{tenant_slug}/pos/',
+            'business_name': business_name,
+            'login_url': f'{settings.SITE_URL}/pos/',
         }
 
         html_message = render_to_string('emails/welcome_email.html', context)
 
-        text_message = f"""
-Welcome to GetCore POS
-
-Hello {context['first_name']},
-
-Your account has been created successfully. Here are your login credentials:
-
-Business Name: {tenant_name}
-Username: {username}
-{credential_label}: {credential_value}
-
-You'll be prompted to change this on your first login.
-
-Sign in here: {context['login_url']}
-
-IMPORTANT: For security, change your credentials immediately after your first login.
-
-Next Steps:
-1. Sign in using the credentials above
-2. Change your {credential_label.lower()} when prompted
-3. Complete your profile
-4. Start using GetCore POS
-
-This is an automated message, please do not reply to this email.
-
-© {timezone.now().year} GetCore POS. All rights reserved.
-        """
+        text_message = (
+            f"Welcome to GetCore POS\n\n"
+            f"Hello {context['first_name']},\n\n"
+            f"Your account has been created. Here are your login credentials:\n\n"
+            f"Business: {business_name}\n"
+            f"Username: {username}\n"
+            f"{credential_label}: {credential_value}\n\n"
+            f"{credential_hint}\n\n"
+            f"Sign in here: {context['login_url']}\n\n"
+            f"This is an automated message. Please do not reply.\n\n"
+            f"(c) {timezone.now().year} GetCore POS. All rights reserved."
+        )
 
         email = EmailMultiAlternatives(
             subject='Welcome to GetCore POS - Your Account is Ready',
             body=text_message,
             from_email=settings.DEFAULT_FROM_EMAIL,
-            to=[user.email]
+            to=[user.email],
         )
-
-        email.attach_alternative(html_message, "text/html")
+        email.attach_alternative(html_message, 'text/html')
         result = email.send()
 
-        return {
-            'status': 'success',
-            'user_id': user_id,
-            'email': user.email,
-            'sent': result
-        }
+        return {'status': 'success', 'user_id': user_id, 'email': user.email, 'sent': result}
 
     except User.DoesNotExist:
-        return {
-            'status': 'error',
-            'message': f'User with ID {user_id} not found'
-        }
+        return {'status': 'error', 'message': f'User with ID {user_id} not found'}
 
     except Exception as exc:
         try:
             self.retry(exc=exc, countdown=60 * (2 ** self.request.retries))
         except self.MaxRetriesExceededError:
-            return {
-                'status': 'failed',
-                'user_id': user_id,
-                'error': str(exc)
-            }
+            return {'status': 'failed', 'user_id': user_id, 'error': str(exc)}

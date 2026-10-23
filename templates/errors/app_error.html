@@ -1,0 +1,55 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Something went wrong</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        body {
+            min-height: 100vh;
+            background: #f1f5f9;
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Trebuchet MS', Trebuchet, Arial, sans-serif;
+        }
+        .error-card {
+            background: white;
+            border-radius: 16px;
+            padding: 48px 40px;
+            max-width: 480px;
+            width: 100%;
+            box-shadow: 0 8px 32px rgba(0,0,0,.08);
+            text-align: center;
+        }
+        .error-icon {
+            width: 64px; height: 64px;
+            border-radius: 50%;
+            background: #fee2e2;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 20px;
+            font-size: 1.8rem; color: #dc2626;
+        }
+        .error-title { font-size: 1.2rem; font-weight: 700; color: #1e293b; margin-bottom: 10px; }
+        .error-message { font-size: 14px; color: #64748b; margin-bottom: 28px; line-height: 1.6; }
+        .btn-back {
+            background: #10b981; color: white; border: none;
+            border-radius: 10px; padding: 10px 28px;
+            font-size: 14px; font-weight: 600; text-decoration: none;
+            display: inline-block; transition: filter .2s;
+        }
+        .btn-back:hover { filter: brightness(1.08); color: white; }
+    </style>
+</head>
+<body>
+<div class="error-card">
+    <div class="error-icon"><i class="bi bi-exclamation-triangle-fill"></i></div>
+    <div class="error-title">Something went wrong</div>
+    <div class="error-message">{{ error_message }}</div>
+    <a href="{{ back_url|default:'/' }}" class="btn-back">
+        <i class="bi bi-arrow-left me-1"></i>Go Back
+    </a>
+</div>
+</body>
+</html>

@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% load humanize %}
-{% block title %}{{ action }} | {{ sys.business_name }}{% endblock %}
+{% block title %}{{ action }} | {{ sys.business_name|default:"GetCore POS" }}{% endblock %}
 {% block breadcrumb %}
-    <a href="/{{ tenant.slug }}/inventory/" class="text-muted text-decoration-none">Inventory</a> / {{ action }}
+    <a href="/inventory/" class="text-muted text-decoration-none">Inventory</a> / {{ action }}
 {% endblock %}
 
 {% block extra_head %}
@@ -165,7 +165,7 @@
                         <i class="bi bi-check-lg me-1"></i>
                         {% if action == 'Edit Product' %}Update Product{% else %}Add Product{% endif %}
                     </button>
-                    <a href="/{{ tenant.slug }}/inventory/" class="btn btn-outline-secondary px-4">Cancel</a>
+                    <a href="/inventory/" class="btn btn-outline-secondary px-4">Cancel</a>
                 </div>
             </form>
         </div>

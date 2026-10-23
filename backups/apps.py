@@ -1,7 +1,6 @@
 from django.apps import AppConfig
 
 
-class TenantsConfig(AppConfig):
+class BackupsConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'tenants'
-    verbose_name = 'Tenants'
+    name = 'backups'

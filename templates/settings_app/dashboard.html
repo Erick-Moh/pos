@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Settings | {{ sys.business_name }}{% endblock %}
+{% block title %}Settings | {{ sys.business_name|default:"GetCore POS" }}{% endblock %}
 {% block breadcrumb %}<i class="bi bi-gear me-1"></i> System Settings{% endblock %}
 
 {% block extra_head %}

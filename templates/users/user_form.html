@@ -1,7 +1,7 @@
 {% extends "base.html" %}
-{% block title %}{{ action }} User | {{ sys.business_name }}{% endblock %}
+{% block title %}{{ action }} User | {{ sys.business_name|default:"GetCore POS" }}{% endblock %}
 {% block breadcrumb %}
-    <a href="/{{ tenant.slug }}/users/manage/" class="text-muted text-decoration-none">Users</a>
+    <a href="/users/manage/" class="text-muted text-decoration-none">Users</a>
     / {{ action }} User
 {% endblock %}
 
@@ -114,7 +114,7 @@
                         <i class="bi bi-check-lg me-1"></i>
                         {% if action == 'Edit' %}Update User{% else %}Create User{% endif %}
                     </button>
-                    <a href="/{{ tenant.slug }}/users/manage/" class="btn btn-outline-secondary px-4">Cancel</a>
+                    <a href="/users/manage/" class="btn btn-outline-secondary px-4">Cancel</a>
                 </div>
             </form>
         </div>

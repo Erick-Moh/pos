@@ -31,7 +31,7 @@
 <div class="d-flex align-items-center justify-content-between mb-4">
   <div>
     <h4 class="fw-bold mb-0">Customer Directory</h4>
-    <div class="small text-muted">All registered customers across all client tenants</div>
+    <div class="small text-muted">All registered customers</div>
   </div>
 </div>
 
@@ -65,17 +65,6 @@
       </div>
     </div>
     <div>
-      <label class="form-label small fw-medium mb-1">Tenant / Client</label>
-      <select name="tenant" class="form-select" style="width:200px;">
-        <option value="">All Tenants</option>
-        {% for t in tenants %}
-        <option value="{{ t.pk }}" {% if tenant_filter == t.pk|stringformat:"s" %}selected{% endif %}>
-          {{ t.name }}
-        </option>
-        {% endfor %}
-      </select>
-    </div>
-    <div>
       <label class="form-label small fw-medium mb-1">Credit</label>
       <select name="credit" class="form-select" style="width:140px;">
         <option value="">All</option>
@@ -87,7 +76,7 @@
       <button type="submit" class="btn btn-primary btn-sm px-3">
         <i class="bi bi-funnel me-1"></i>Filter
       </button>
-      {% if q or tenant_filter or credit_filter %}
+      {% if q or credit_filter %}
       <a href="{% url 'platform:all_customers' %}" class="btn btn-outline-secondary btn-sm">
         <i class="bi bi-x me-1"></i>Clear
       </a>
@@ -104,7 +93,6 @@
       <thead>
         <tr>
           <th class="ps-3">Customer</th>
-          <th>Tenant / Client</th>
           <th>Phone</th>
           <th class="text-center">Credit</th>
           <th class="text-end">Outstanding</th>
@@ -125,17 +113,6 @@
                 {% endif %}
               </div>
             </div>
-          </td>
-          <td>
-            {% if c.tenant %}
-            <a href="{% url 'platform:tenant_detail' c.tenant.pk %}"
-               class="text-decoration-none fw-medium small">
-              {{ c.tenant.name }}
-            </a>
-            <div class="small text-muted">{{ c.tenant.reference_code }}</div>
-            {% else %}
-            <span class="text-muted small">—</span>
-            {% endif %}
           </td>
           <td class="small text-muted">{{ c.phone|default:"—" }}</td>
           <td class="text-center">
@@ -178,10 +155,10 @@
     <i class="bi bi-people fs-1 d-block mb-2 opacity-25"></i>
     <div class="fw-semibold text-dark mb-1">No customers found</div>
     <div class="small">
-      {% if q or tenant_filter or credit_filter %}
+      {% if q or credit_filter %}
         Try adjusting your filters.
       {% else %}
-        No customers have been registered across any tenant yet.
+        No customers registered yet.
       {% endif %}
     </div>
   </div>

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load humanize %}
-{% block title %}Yearly Report {{ year }} | {{ sys.business_name }}{% endblock %}
+{% block title %}Yearly Report {{ year }} | {{ sys.business_name|default:"GetCore POS" }}{% endblock %}
 {% block breadcrumb %}<i class="bi bi-graph-up me-1"></i> Yearly Report{% endblock %}
 
 {% block content %}
@@ -61,7 +61,8 @@
                     <th class="text-end">Revenue</th>
                     <th class="text-end">COGS</th>
                     <th class="text-end">Gross Profit</th>
-                    <th class="text-end pe-3">Margin %</th>
+                    <th class="text-end">Margin %</th>
+                    <th class="text-end pe-3 text-warning">Credit Unpaid</th>
                 </tr>
             </thead>
             <tbody>
@@ -73,10 +74,17 @@
                     <td class="text-end {% if row.profit > 0 %}text-success{% else %}text-danger{% endif %}">
                         {{ currency }} {{ row.profit|floatformat:2|intcomma }}
                     </td>
-                    <td class="text-end pe-3">
+                    <td class="text-end">
                         {% if row.revenue > 0 %}
                         {% widthratio row.profit row.revenue 100 %}%
                         {% else %}—{% endif %}
+                    </td>
+                    <td class="text-end pe-3">
+                        {% if row.credit_outstanding > 0 %}
+                            <span class="text-warning fw-semibold">{{ currency }} {{ row.credit_outstanding|floatformat:2|intcomma }}</span>
+                        {% else %}
+                            <span class="text-muted">—</span>
+                        {% endif %}
                     </td>
                 </tr>
                 {% endfor %}
@@ -87,8 +95,13 @@
                     <td class="text-end">{{ currency }} {{ yearly_total|floatformat:2|intcomma }}</td>
                     <td class="text-end text-danger">{{ currency }} {{ yearly_cogs|floatformat:2|intcomma }}</td>
                     <td class="text-end text-success">{{ currency }} {{ yearly_profit|floatformat:2|intcomma }}</td>
-                    <td class="text-end pe-3">
+                    <td class="text-end">
                         {% if yearly_total > 0 %}{% widthratio yearly_profit yearly_total 100 %}%{% endif %}
+                    </td>
+                    <td class="text-end pe-3 text-warning">
+                        {% if yearly_credit_outstanding > 0 %}
+                            {{ currency }} {{ yearly_credit_outstanding|floatformat:2|intcomma }}
+                        {% else %}—{% endif %}
                     </td>
                 </tr>
             </tfoot>

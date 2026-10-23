@@ -85,15 +85,8 @@ class ProductForm(forms.ModelForm):
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'is_service': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
-        
-    def clean_description(self):
-        description = self.cleaned_data.get('description')
-        if description:
-            return bleach.clean(description, tags=[], strip=True)
-        return description
-        
+
     def __init__(self, *args, **kwargs):
-        tenant=kwargs.pop('tenant', None)
         super().__init__(*args, **kwargs)
         self.fields['buying_price'].validators.append(_validate_positive)
         self.fields['selling_price'].validators.append(_validate_positive)
@@ -101,18 +94,24 @@ class ProductForm(forms.ModelForm):
         self.fields['quantity_in_stock'].validators.append(_validate_positive)
         self.fields['reorder_level'].validators.append(_validate_positive)
         self.fields['max_stock_level'].validators.append(_validate_positive)
-        if tenant:
-            self.fields['category'].queryset = Category.objects.filter(
-                tenant=tenant, is_active=True
-            ).exclude(parent__isnull=True)
-            self.fields['supplier'].queryset = Supplier.objects.filter(tenant=tenant, is_active=True)
-        else:
-            self.fields['category'].queryset = Category.objects.none()
-            self.fields['supplier'].queryset = Supplier.objects.none()
-        
+        self.fields['category'].queryset = Category.objects.filter(
+            is_active=True
+        ).exclude(parent__isnull=True)
+        self.fields['supplier'].queryset = Supplier.objects.filter(is_active=True)
+        # Show blank instead of 0.00 on new product forms
+        if not self.instance.pk:
+            for fname in ['buying_price', 'selling_price', 'wholesale_price',
+                          'quantity_in_stock', 'reorder_level', 'max_stock_level']:
+                self.initial[fname] = ''
+
+    def clean_description(self):
+        description = self.cleaned_data.get('description')
+        if description:
+            return bleach.clean(description, tags=[], strip=True)
+        return description
+
     def save(self, commit=True):
         product = super().save(commit=False)
-        # Auto-generate SKU if not provided
         if not product.sku:
             import uuid
             product.sku = f'SKU-{str(uuid.uuid4()).upper()[:8]}'
@@ -135,14 +134,13 @@ class StockAdjustmentForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
-        tenant=kwargs.pop('tenant', None)
         super().__init__(*args, **kwargs)
         self.fields['quantity'].validators.append(_validate_positive)
         self.fields['unit_cost'].validators.append(_validate_positive)
-        if tenant:
-            self.fields['product'].queryset = Product.objects.filter(tenant=tenant, is_active=True)
-        else:
-            self.fields['product'].queryset = Product.objects.none()
+        self.fields['product'].queryset = Product.objects.filter(is_active=True)
+        if not self.instance.pk:
+            for fname in ['quantity', 'unit_cost']:
+                self.initial[fname] = ''
 
     def clean_notes(self):
         notes = self.cleaned_data.get('notes')

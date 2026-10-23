@@ -9,9 +9,14 @@
         <h4 class="fw-bold mb-0">Credit Sales (Pay Later)</h4>
         <p class="text-muted small mb-0">Track and settle customer credit purchases.</p>
     </div>
-    <a href="/{{ tenant_slug }}/pos/customers/" class="btn btn-outline-secondary btn-sm">
-        <i class="bi bi-people me-1"></i>Manage Customers
-    </a>
+    <div class="d-flex gap-2">
+        <a href="/pos/credits/customers/" class="btn btn-warning btn-sm fw-semibold">
+            <i class="bi bi-people me-1"></i>By Customer
+        </a>
+        <a href="/pos/customers/" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-person-gear me-1"></i>Manage Customers
+        </a>
+    </div>
 </div>
 
 <!-- Summary Cards -->
@@ -59,19 +64,26 @@
                     <th>Customer</th>
                     <th>Date Sold</th>
                     <th>Due Date</th>
-                    <th class="text-end">Amount</th>
+                    <th class="text-end">Invoice Total</th>
+                    <th class="text-end">Balance Due</th>
                     <th class="text-center">Status</th>
                     <th class="text-end pe-3">Action</th>
                 </tr>
             </thead>
             <tbody>
                 {% for sale in sales %}
-                {% with is_overdue=sale.credit_due_date|date:"Y-m-d" < today|date:"Y-m-d" %}
                 <tr class="{% if not sale.credit_paid and sale.credit_due_date and sale.credit_due_date < today %}table-danger{% endif %}">
                     <td class="ps-3">
-                        <a href="/{{ tenant_slug }}/pos/sales/{{ sale.pk }}/" class="fw-semibold text-decoration-none">
+                        <a href="/pos/sales/{{ sale.pk }}/" class="fw-semibold text-decoration-none">
                             {{ sale.invoice_number }}
                         </a>
+                        {% if sale.repayments.all %}
+                        <br>
+                        <button class="btn btn-link btn-sm p-0 text-muted small" type="button"
+                            data-bs-toggle="collapse" data-bs-target="#history{{ sale.pk }}">
+                            <i class="bi bi-clock-history me-1"></i>{{ sale.repayments.count }} payment{{ sale.repayments.count|pluralize }}
+                        </button>
+                        {% endif %}
                     </td>
                     <td>
                         {% if sale.customer %}
@@ -97,74 +109,90 @@
                         {% endif %}
                     </td>
                     <td class="text-end fw-semibold">{{ currency }} {{ sale.total_amount|floatformat:2|intcomma }}</td>
+                    <td class="text-end">
+                        {% if sale.credit_paid %}
+                            <span class="text-success fw-semibold">0.00</span>
+                        {% else %}
+                            <span class="text-danger fw-bold">{{ currency }} {{ sale.balance_due|floatformat:2|intcomma }}</span>
+                            {% if sale.amount_repaid > 0 %}
+                            <div class="progress mt-1" style="height:4px;min-width:80px;">
+                                {% widthratio sale.amount_repaid sale.total_amount 100 as pct %}
+                                <div class="progress-bar bg-warning" style="width:{{ pct }}%"></div>
+                            </div>
+                            <div class="text-muted" style="font-size:0.7rem;">{{ currency }} {{ sale.amount_repaid|floatformat:2|intcomma }} paid</div>
+                            {% endif %}
+                        {% endif %}
+                    </td>
                     <td class="text-center">
                         {% if sale.credit_paid %}
                             <span class="badge bg-success">
-                                <i class="bi bi-check-circle me-1"></i>Paid
+                                <i class="bi bi-check-circle me-1"></i>Settled
                             </span>
                             <div class="text-muted small">{{ sale.credit_paid_at|date:"d M Y" }}</div>
+                        {% elif sale.amount_repaid > 0 %}
+                            <span class="badge bg-warning text-dark">
+                                <i class="bi bi-hourglass-split me-1"></i>Partial
+                            </span>
                         {% else %}
-                            <span class="badge bg-warning text-dark">Unpaid</span>
+                            <span class="badge bg-secondary">Unpaid</span>
                         {% endif %}
                     </td>
                     <td class="text-end pe-3">
                         {% if not sale.credit_paid %}
-                        <button class="btn btn-sm btn-success"
-                            data-bs-toggle="modal"
-                            data-bs-target="#payModal{{ sale.pk }}"
-                            title="Mark as Paid">
-                            <i class="bi bi-cash-coin me-1"></i>Settle
-                        </button>
-
-                        <!-- Settle Modal -->
-                        <div class="modal fade" id="payModal{{ sale.pk }}" tabindex="-1">
-                            <div class="modal-dialog modal-sm">
-                                <div class="modal-content">
-                                    <div class="modal-header">
-                                        <h6 class="modal-title fw-bold">Settle Credit Sale</h6>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                    </div>
-                                    <form method="post" action="/{{ tenant_slug }}/pos/credits/{{ sale.pk }}/paid/">
-                                        {% csrf_token %}
-                                        <div class="modal-body">
-                                            <p class="small mb-2">
-                                                <strong>{{ sale.invoice_number }}</strong><br>
-                                                Customer: {{ sale.customer.name }}<br>
-                                                Amount: <span class="text-danger fw-bold">{{ currency }} {{ sale.total_amount|floatformat:2|intcomma }}</span>
-                                            </p>
-                                            <div class="mb-2">
-                                                <label class="form-label small fw-medium">Payment Method</label>
-                                                <select name="payment_method" class="form-select form-select-sm">
-                                                    <option value="cash">Cash</option>
-                                                    <option value="mpesa">M-Pesa</option>
-                                                    <option value="card">Card</option>
-                                                </select>
-                                            </div>
-                                            <div>
-                                                <label class="form-label small fw-medium">Reference / M-Pesa Code (optional)</label>
-                                                <input type="text" name="reference" class="form-control form-control-sm"
-                                                    placeholder="e.g. QKJ2X8N9L4">
-                                            </div>
-                                        </div>
-                                        <div class="modal-footer">
-                                            <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                            <button type="submit" class="btn btn-sm btn-success">
-                                                <i class="bi bi-check-lg me-1"></i>Confirm Payment
-                                            </button>
-                                        </div>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
+                            {% if user.role == 'admin' or user.role == 'cashier' or user.is_superuser %}
+                            <button class="btn btn-sm btn-success"
+                                data-bs-toggle="modal"
+                                data-bs-target="#repayModal{{ sale.pk }}"
+                                title="Record Payment">
+                                <i class="bi bi-cash-coin me-1"></i>Record Payment
+                            </button>
+                            {% else %}
+                            <span class="text-muted small">Not permitted</span>
+                            {% endif %}
                         {% else %}
-                            <span class="text-muted small">{{ sale.get_credit_payment_method_display }}</span>
+                            <span class="text-muted small">
+                                <i class="bi bi-check-circle-fill text-success me-1"></i>Fully Settled
+                            </span>
                         {% endif %}
                     </td>
                 </tr>
-                {% endwith %}
+
+                <!-- Repayment History (collapsible row) -->
+                {% if sale.repayments.all %}
+                <tr class="collapse" id="history{{ sale.pk }}">
+                    <td colspan="8" class="bg-light py-2 px-4">
+                        <div class="small text-muted fw-semibold mb-2">
+                            <i class="bi bi-clock-history me-1"></i>Payment History — {{ sale.invoice_number }}
+                        </div>
+                        <table class="table table-sm mb-0">
+                            <thead>
+                                <tr class="text-muted">
+                                    <th class="fw-normal">Date</th>
+                                    <th class="fw-normal">Method</th>
+                                    <th class="fw-normal">Reference</th>
+                                    <th class="fw-normal text-end">Amount</th>
+                                    <th class="fw-normal">Recorded By</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for r in sale.repayments.all %}
+                                <tr>
+                                    <td>{{ r.recorded_at|date:"d M Y H:i" }}</td>
+                                    <td>{{ r.get_payment_method_display }}</td>
+                                    <td>{{ r.reference|default:"—" }}</td>
+                                    <td class="text-end fw-semibold text-success">{{ currency }} {{ r.amount|floatformat:2|intcomma }}</td>
+                                    <td>{{ r.recorded_by.get_full_name|default:r.recorded_by.username|default:"—" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </td>
+                </tr>
+                {% endif %}
+
                 {% empty %}
                 <tr>
-                    <td colspan="7" class="text-center text-muted py-5">
+                    <td colspan="8" class="text-center text-muted py-5">
                         <i class="bi bi-check-circle fs-3 d-block mb-2 text-success"></i>
                         No credit sales found.
                     </td>
@@ -174,4 +202,113 @@
         </table>
     </div>
 </div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     Repayment Modals — rendered OUTSIDE the table to avoid
+     invalid nesting that breaks Bootstrap's backdrop/z-index.
+     ═══════════════════════════════════════════════════════════ -->
+{% if user.role == 'admin' or user.role == 'cashier' or user.is_superuser %}
+{% for sale in sales %}
+{% if not sale.credit_paid %}
+<div class="modal fade" id="repayModal{{ sale.pk }}" tabindex="-1" aria-labelledby="repayLabel{{ sale.pk }}" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title fw-bold" id="repayLabel{{ sale.pk }}">
+                    <i class="bi bi-cash-coin me-2"></i>Record Credit Payment
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="/pos/credits/{{ sale.pk }}/repay/">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <!-- Invoice summary -->
+                    <div class="bg-light rounded p-3 mb-3 small">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Invoice</span>
+                            <strong>{{ sale.invoice_number }}</strong>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Customer</span>
+                            <strong>{{ sale.customer.name|default:"—" }}</strong>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Invoice Total</span>
+                            <strong>{{ currency }} {{ sale.total_amount|floatformat:2|intcomma }}</strong>
+                        </div>
+                        {% if sale.amount_repaid > 0 %}
+                        <div class="d-flex justify-content-between text-warning">
+                            <span>Already Paid</span>
+                            <strong>{{ currency }} {{ sale.amount_repaid|floatformat:2|intcomma }}</strong>
+                        </div>
+                        {% endif %}
+                        <div class="d-flex justify-content-between border-top pt-1 mt-1">
+                            <span class="text-danger fw-semibold">Balance Due</span>
+                            <strong class="text-danger">{{ currency }} {{ sale.balance_due|floatformat:2|intcomma }}</strong>
+                        </div>
+                    </div>
+
+                    <!-- Amount -->
+                    <div class="mb-3">
+                        <label class="form-label fw-medium">Amount Received <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text">{{ currency }}</span>
+                            <input type="number" name="amount" class="form-control"
+                                step="0.01" min="0.01" max="{{ sale.balance_due }}"
+                                value="{{ sale.balance_due }}" required>
+                        </div>
+                        <div class="form-text">Enter partial or full amount. Max: {{ currency }} {{ sale.balance_due|floatformat:2|intcomma }}</div>
+                    </div>
+
+                    <!-- Payment Method -->
+                    <div class="mb-3">
+                        <label class="form-label fw-medium">Payment Method</label>
+                        <select name="payment_method" class="form-select">
+                            <option value="cash">Cash</option>
+                            <option value="mpesa">M-Pesa</option>
+                            <option value="card">Credit / Debit Card</option>
+                        </select>
+                    </div>
+
+                    <!-- Reference -->
+                    <div class="mb-3">
+                        <label class="form-label fw-medium">Reference / M-Pesa Code <span class="text-muted">(optional)</span></label>
+                        <input type="text" name="reference" class="form-control"
+                            placeholder="e.g. QKJ2X8N9L4">
+                    </div>
+
+                    <!-- Notes -->
+                    <div>
+                        <label class="form-label fw-medium">Notes <span class="text-muted">(optional)</span></label>
+                        <textarea name="notes" class="form-control" rows="2"
+                            placeholder="Any additional notes..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check-lg me-1"></i>Record Payment
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endfor %}
+{% endif %}
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Move all repayment modals to <body> so they escape the layout's stacking context.
+// Without this, Bootstrap's backdrop (z-index 1050) sits above the modal dialog
+// because a parent element (the sidebar/flex wrapper) creates a competing stacking context.
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('[id^="repayModal"]').forEach(function (modal) {
+        document.body.appendChild(modal);
+    });
+});
+</script>
 {% endblock %}

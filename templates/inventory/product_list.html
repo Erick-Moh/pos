@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load humanize %}
-{% block title %}Inventory | {{ sys.business_name }}{% endblock %}
+{% block title %}Inventory | {{ sys.business_name|default:"GetCore POS" }}{% endblock %}
 {% block breadcrumb %}<i class="bi bi-boxes me-1"></i> Inventory{% endblock %}
 
 {% block extra_head %}
@@ -26,14 +26,14 @@
     </div>
     {% if user.is_admin_role %}
     <div class="d-flex gap-2">
-        <a href="/{{ tenant.slug }}/inventory/adjust/" class="btn btn-outline-secondary">
+        <a href="/inventory/adjust/" class="btn btn-outline-secondary">
             <i class="bi bi-arrow-left-right me-1"></i>Stock Adjustment
         </a>
-        <a href="/{{ tenant.slug }}/inventory/add/" class="btn btn-nexus">
+        <a href="/inventory/add/" class="btn btn-nexus">
             <i class="bi bi-plus-lg me-1"></i>Add Product
         </a>
-        {% if tenant.load_default_categories and not tenant.load_default_products %}
-        <a href="/{{ tenant.slug }}/inventory/load-default-products/" class="btn btn-nexus">
+        {% if categories %}
+        <a href="/inventory/load-default-products/" class="btn btn-nexus">
             <i class="bi bi-arrow-clockwise me-1"></i>Load Default Products
         </a>
         {% endif %}
@@ -63,7 +63,7 @@
     </div>
     <div class="col-6 col-md-3">
         {% if user.is_admin_role %}
-        <a href="/{{ tenant.slug }}/inventory/categories/" class="inv-kpi d-block text-decoration-none" style="border-style:dashed;">
+        <a href="/inventory/categories/" class="inv-kpi d-block text-decoration-none" style="border-style:dashed;">
             <div class="inv-kpi-val" style="font-size:1.2rem;color:var(--nexus-primary);"><i class="bi bi-tags me-1"></i>Categories</div>
             <div class="inv-kpi-lbl">& <span style="color:var(--nexus-primary);">Suppliers →</span></div>
         </a>
@@ -101,7 +101,7 @@
             </div>
             <div class="d-flex gap-1">
                 <button type="submit" class="btn btn-sm btn-outline-primary px-3">Filter</button>
-                <a href="/{{ tenant.slug }}/inventory/" class="btn btn-sm btn-outline-secondary px-3">Reset</a>
+                <a href="/inventory/" class="btn btn-sm btn-outline-secondary px-3">Reset</a>
             </div>
         </form>
     </div>
@@ -156,10 +156,10 @@
                     </td>
                     <td class="pe-4">
                         <div class="tbl-actions">
-                            <a href="/{{ tenant.slug }}/inventory/{{ product.pk }}/" class="btn btn-sm btn-outline-secondary" title="View"><i class="bi bi-eye"></i></a>
+                            <a href="/inventory/{{ product.pk }}/" class="btn btn-sm btn-outline-secondary" title="View"><i class="bi bi-eye"></i></a>
                             {% if user.is_admin_role %}
-                            <a href="/{{ tenant.slug }}/inventory/{{ product.pk }}/edit/" class="btn btn-sm btn-outline-primary" title="Edit"><i class="bi bi-pencil"></i></a>
-                            <a href="/{{ tenant.slug }}/inventory/{{ product.pk }}/delete/" class="btn btn-sm btn-outline-danger" title="Delete"
+                            <a href="/inventory/{{ product.pk }}/edit/" class="btn btn-sm btn-outline-primary" title="Edit"><i class="bi bi-pencil"></i></a>
+                            <a href="/inventory/{{ product.pk }}/delete/" class="btn btn-sm btn-outline-danger" title="Delete"
                                onclick="return confirm('Are you sure you want to delete this product? This action cannot be undone.')">
                                 <i class="bi bi-trash"></i>
                             </a>
@@ -172,7 +172,7 @@
                     <td colspan="6" class="text-center py-5 text-muted">
                         <i class="bi bi-boxes fs-1 d-block mb-2 opacity-25"></i>
                         No products found.
-                        {% if user.is_admin_role %}<a href="/{{ tenant.slug }}/inventory/add/">Add your first product →</a>{% endif %}
+                        {% if user.is_admin_role %}<a href="/inventory/add/">Add your first product →</a>{% endif %}
                     </td>
                 </tr>
                 {% endfor %}
@@ -181,8 +181,8 @@
     </div>
     {% if user.is_admin_role %}
     <div class="card-footer bg-transparent border-0 py-2 px-3 d-flex gap-2">
-        <a href="/{{ tenant.slug }}/inventory/categories/" class="btn btn-sm btn-outline-secondary"><i class="bi bi-tags me-1"></i>Categories</a>
-        <a href="/{{ tenant.slug }}/inventory/suppliers/" class="btn btn-sm btn-outline-secondary"><i class="bi bi-truck me-1"></i>Suppliers</a>
+        <a href="/inventory/categories/" class="btn btn-sm btn-outline-secondary"><i class="bi bi-tags me-1"></i>Categories</a>
+        <a href="/inventory/suppliers/" class="btn btn-sm btn-outline-secondary"><i class="bi bi-truck me-1"></i>Suppliers</a>
     </div>
     {% endif %}
 </div>

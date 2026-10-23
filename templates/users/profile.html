@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}My Profile | {{ sys.business_name }}{% endblock %}
+{% block title %}My Profile | {{ sys.business_name|default:"GetCore POS" }}{% endblock %}
 {% block breadcrumb %}<i class="bi bi-person-circle me-1"></i> My Profile{% endblock %}
 
 {% block extra_head %}
@@ -53,10 +53,10 @@
                         </div>
                     </div>
                     <div class="d-flex gap-2 flex-shrink-0">
-                        <a href="/{{ tenant.slug }}/users/change-credentials/" class="btn btn-outline-primary btn-sm px-3">
+                        <a href="/users/change-credentials/" class="btn btn-outline-primary btn-sm px-3">
                             <i class="bi bi-key me-1"></i>Change {% if profile_user.is_floor_staff %}PIN{% else %}Password{% endif %}
                         </a>
-                        <a href="/{{ tenant.slug }}/users/logout/" class="btn btn-outline-secondary btn-sm px-3">
+                        <a href="/logout/" class="btn btn-outline-secondary btn-sm px-3">
                             <i class="bi bi-box-arrow-left me-1"></i>Sign Out
                         </a>
                     </div>

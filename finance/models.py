@@ -14,13 +14,6 @@ class DailySummary(models.Model):
     Close-of-Business (COB) snapshot for a single day.
     Auto-generated or manually triggered by the manager.
     """
-    tenant = models.ForeignKey(
-        'tenants.Tenant',
-        on_delete=models.CASCADE,
-        related_name='+',
-        null=True,   # null during migration; set not-null after data backfill
-        db_index=True,
-    )
 
     date = models.DateField()
 
@@ -35,6 +28,8 @@ class DailySummary(models.Model):
     mpesa_total = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     card_total = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     credit_total = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    # Cash actually received from credit repayments on this day
+    credit_repayments_received = models.DecimalField(max_digits=14, decimal_places=2, default=0)
 
     # ── Cost & Profit ──────────────────────────────────────────────────────
     total_cost_of_goods = models.DecimalField(max_digits=16, decimal_places=2, default=0)
@@ -76,7 +71,7 @@ class DailySummary(models.Model):
         verbose_name = 'Daily Summary'
         verbose_name_plural = 'Daily Summaries'
         ordering = ['-date']
-        unique_together = [['tenant', 'date']]
+        unique_together = [['date']]
 
     def __str__(self):
         return f'COB Report: {self.date} | KSh {self.total_sales}'
@@ -88,13 +83,6 @@ class DailySummary(models.Model):
 
 class MonthlySummary(models.Model):
     """Aggregate monthly performance snapshot."""
-    tenant = models.ForeignKey(
-        'tenants.Tenant',
-        on_delete=models.CASCADE,
-        related_name='+',
-        null=True,   # null during migration; set not-null after data backfill
-        db_index=True,
-    )
 
     year = models.PositiveIntegerField()
     month = models.PositiveIntegerField()  # 1-12
@@ -114,7 +102,7 @@ class MonthlySummary(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = [['tenant', 'year', 'month']]
+        unique_together = [['year', 'month']]
         ordering = ['-year', '-month']
 
     def __str__(self):

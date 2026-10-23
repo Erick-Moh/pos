@@ -294,6 +294,50 @@ CATEGORY_TREE_BY_BUSINESS = {
         },
     },
 
+    # ------------------ WINES & SPIRITS ------------------
+    "wines_and_spirits": {
+        "Spirits": {
+            "desc": "Distilled alcoholic beverages",
+            "icon": "bi-cup",
+            "children": [
+                ("Spirits", "Whisky, vodka, gin, rum, local spirits"),
+                ("Liqueurs", "Sweet flavored alcoholic drinks"),
+            ],
+        },
+        "Wines": {
+            "desc": "Fermented grape beverages",
+            "icon": "bi-droplet-half",
+            "children": [
+                ("Wines", "Red, white, rosé, sparkling wines"),
+            ],
+        },
+        "Beers & Ciders": {
+            "desc": "Fermented grain and fruit beverages",
+            "icon": "bi-cup-straw",
+            "children": [
+                ("Beers", "Local and imported beers"),
+                ("Ciders", "Fruit-based alcoholic drinks"),
+            ],
+        },
+        "Non-Alcoholic": {
+            "desc": "Soft drinks and mixers",
+            "icon": "bi-droplet",
+            "children": [
+                ("Soft Drinks", "Carbonated beverages"),
+                ("Juices", "Packaged juices"),
+                ("Water", "Bottled water"),
+                ("Energy Drinks", "Caffeinated beverages"),
+            ],
+        },
+        "Tobacco": {
+            "desc": "Tobacco products",
+            "icon": "bi-slash-circle",
+            "children": [
+                ("Tobacco", "Cigarettes and cigars"),
+            ],
+        },
+    },
+
     # ------------------ DEFAULT ------------------
     "default": {
         "General": {

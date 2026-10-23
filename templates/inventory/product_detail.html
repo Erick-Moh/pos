@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load humanize %}
-{% block title %}{{ product.name }} | {{ sys.business_name }}{% endblock %}
-{% block breadcrumb %}<a href="/{{ tenant.slug }}/inventory/" class="text-muted text-decoration-none">Inventory</a> / {{ product.name }}{% endblock %}
+{% block title %}{{ product.name }} | {{ sys.business_name|default:"GetCore POS" }}{% endblock %}
+{% block breadcrumb %}<a href="/inventory/" class="text-muted text-decoration-none">Inventory</a> / {{ product.name }}{% endblock %}
 
 {% block extra_head %}
 <style>
@@ -39,10 +39,10 @@
     </div>
     {% if user.is_admin_role %}
     <div class="d-flex gap-2">
-        <a href="/{{ tenant.slug }}/inventory/adjust/?next_url=/{{ tenant.slug }}/inventory/{{ product.pk }}/&product_id={{ product.pk }}" class="btn btn-outline-secondary btn-sm px-3">
+        <a href="/inventory/adjust/?next_url=/inventory/{{ product.pk }}/&product_id={{ product.pk }}" class="btn btn-outline-secondary btn-sm px-3">
             <i class="bi bi-arrow-left-right me-1"></i>Adjust Stock
         </a>
-        <a href="/{{ tenant.slug }}/inventory/{{ product.pk }}/edit/" class="btn btn-nexus btn-sm px-3">
+        <a href="/inventory/{{ product.pk }}/edit/" class="btn btn-nexus btn-sm px-3">
             <i class="bi bi-pencil me-1"></i>Edit
         </a>
     </div>
@@ -141,7 +141,7 @@
             <div class="card-header bg-transparent border-0 pt-3 pb-2 px-3 d-flex justify-content-between align-items-center">
                 <h6 class="fw-bold mb-0">Recent Stock Movements</h6>
                 {% if user.is_admin_role %}
-                <a href="/{{ tenant.slug }}/inventory/adjust/?next_url=/{{ tenant.slug }}/inventory/{{ product.pk }}/&product_id={{ product.pk }}" class="btn btn-sm btn-outline-primary">
+                <a href="/inventory/adjust/?next_url=/inventory/{{ product.pk }}/&product_id={{ product.pk }}" class="btn btn-sm btn-outline-primary">
                     <i class="bi bi-plus me-1"></i>Record Movement
                 </a>
                 {% endif %}
@@ -181,7 +181,7 @@
                             <td class="pe-3 text-muted small">{{ m.reference|default:"—" }}</td>
                             <td class="pe-3">
                                 {% if user.is_admin_role %}
-                                <a href="/{{ tenant.slug }}/inventory/stock-movement/{{ m.pk }}/delete/" class="text-danger" title="Delete" onclick="return confirm('Are you sure you want to delete this movement? This will adjust stock levels accordingly.')">
+                                <a href="/inventory/stock-movement/{{ m.pk }}/delete/" class="text-danger" title="Delete" onclick="return confirm('Are you sure you want to delete this movement? This will adjust stock levels accordingly.')">
                                     <i class="bi bi-trash"></i>
                                 </a>
                                 {% else %}

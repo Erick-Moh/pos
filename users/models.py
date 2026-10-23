@@ -18,13 +18,6 @@ class GetCoreUser(AbstractUser):
     All users share the same model; role is determined by `role` field.
     Admins use standard Django password; staff use hashed_pin.
     """
-    tenant = models.ForeignKey(
-        'tenants.Tenant',
-        on_delete=models.CASCADE,
-        related_name='users',
-        null=True,   # null during migration; set not-null after data backfill
-        db_index=True,
-    )
 
 
     ROLE_CHOICES = [

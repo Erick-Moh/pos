@@ -1,7 +1,6 @@
 """
 users/decorators.py
-Access control decorators for GetCore ERP.
-All redirects are tenant-aware.
+Access control decorators for GetCore.
 """
 
 from functools import wraps
@@ -9,37 +8,50 @@ from django.shortcuts import redirect
 from django.contrib import messages
 
 
+def login_required(view_func):
+    """Redirect unauthenticated users to the login page."""
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return redirect('login')
+        return view_func(request, *args, **kwargs)
+    return wrapper
+
+
 def admin_required(view_func):
-    """Only admin/manager roles."""
+    """Only admin/manager roles may access this view."""
     @wraps(view_func)
-    def wrapper(request, tenant_slug, *args, **kwargs):
+    def wrapper(request, *args, **kwargs):
         if not request.user.is_authenticated:
-            return redirect('tenant:users:login', tenant_slug=tenant_slug)
+            return redirect('login')
         if request.user.is_admin_role:
-            return view_func(request, tenant_slug, *args, **kwargs)
+            return view_func(request, *args, **kwargs)
         messages.error(request, 'Access denied. This area requires administrator privileges.')
-        return redirect('tenant:pos:dashboard', tenant_slug=tenant_slug)
+        return redirect('pos:dashboard')
     return wrapper
 
 
-def pos_access_required(view_func):
-    """Any authenticated user can access POS."""
+def admin_only(view_func):
+    """Only the admin role may access this view (managers, cashiers, and waiters are excluded)."""
     @wraps(view_func)
-    def wrapper(request, tenant_slug, *args, **kwargs):
+    def wrapper(request, *args, **kwargs):
         if not request.user.is_authenticated:
-            return redirect('users:login', tenant_slug=tenant_slug)
-        return view_func(request, tenant_slug, *args, **kwargs)
+            return redirect('login')
+        if request.user.role == 'admin' or request.user.is_superuser:
+            return view_func(request, *args, **kwargs)
+        messages.error(request, 'Access denied. Only administrators can perform this action.')
+        return redirect('pos:dashboard')
     return wrapper
 
 
-def login_required_tenant(view_func):
-    """
-    Tenant-aware login_required decorator.
-    Redirects unauthenticated users to the tenant's login page.
-    """
+def admin_or_cashier(view_func):
+    """Admin and cashier roles may access this view (managers and waiters are excluded)."""
     @wraps(view_func)
-    def wrapper(request, tenant_slug, *args, **kwargs):
+    def wrapper(request, *args, **kwargs):
         if not request.user.is_authenticated:
-            return redirect('tenant:users:login', tenant_slug=tenant_slug)
-        return view_func(request, tenant_slug, *args, **kwargs)
+            return redirect('login')
+        if request.user.role in ('admin', 'cashier') or request.user.is_superuser:
+            return view_func(request, *args, **kwargs)
+        messages.error(request, 'Access denied. Only administrators and cashiers can perform this action.')
+        return redirect('pos:dashboard')
     return wrapper

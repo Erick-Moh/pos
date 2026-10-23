@@ -1,22 +1,20 @@
+"""
+core/pwa_views.py
+Serves the PWA manifest and service worker — no tenant dependency.
+"""
+
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_http_methods
-from django.conf import settings
+
 
 @require_http_methods(["GET"])
-def manifest(request, tenant_slug):
-    """
-    Serve manifest.json with tenant-specific start_url.
-    
-    URL: /<tenant_slug>/manifest.json
-    Example: /seniors-place/manifest.json
-    
-    Returns manifest with proper icon paths.
-    """
+def manifest(request):
+    """Serve manifest.json for the PWA."""
     return JsonResponse({
         "name": "GetCore POS",
         "short_name": "GetCore",
-        "start_url": f"/{tenant_slug}/pos/",
-        "scope": f"/{tenant_slug}/",
+        "start_url": "/pos/",
+        "scope": "/",
         "display": "standalone",
         "orientation": "portrait-primary",
         "theme_color": "#1f2937",
@@ -45,14 +43,11 @@ def manifest(request, tenant_slug):
         ]
     }, content_type='application/manifest+json')
 
+
 @require_http_methods(["GET"])
 def service_worker(request):
-    """
-    Serve service-worker.js directly from Django view.
-    
-    URL: /service-worker.js
-    """
-    service_worker_code = """// Service Worker for GetCore POS PWA
+    """Serve service-worker.js directly from Django view."""
+    sw_code = """// Service Worker for GetCore POS PWA
 const CACHE_NAME = 'getcore-pos-v1';
 
 self.addEventListener('install', event => {
@@ -61,13 +56,11 @@ self.addEventListener('install', event => {
 
 self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then(cacheNames => {
-      return Promise.all(
-        cacheNames
-          .filter(cacheName => cacheName !== CACHE_NAME)
-          .map(cacheName => caches.delete(cacheName))
-      );
-    })
+    caches.keys().then(cacheNames => Promise.all(
+      cacheNames
+        .filter(n => n !== CACHE_NAME)
+        .map(n => caches.delete(n))
+    ))
   );
   self.clients.claim();
 });
@@ -76,17 +69,14 @@ self.addEventListener('fetch', event => {
   const { request } = event;
   const url = new URL(request.url);
 
-  if (url.origin !== location.origin || request.method !== 'GET') {
-    return;
-  }
+  if (url.origin !== location.origin || request.method !== 'GET') return;
 
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request)
         .then(response => {
           if (response.ok) {
-            const cache_copy = response.clone();
-            caches.open(CACHE_NAME).then(cache => cache.put(request, cache_copy));
+            caches.open(CACHE_NAME).then(c => c.put(request, response.clone()));
           }
           return response;
         })
@@ -97,15 +87,10 @@ self.addEventListener('fetch', event => {
 
   if (request.url.includes('/static/')) {
     event.respondWith(
-      caches.match(request).then(response => {
-        return response || fetch(request).then(response => {
-          if (response.ok) {
-            const cache_copy = response.clone();
-            caches.open(CACHE_NAME).then(cache => cache.put(request, cache_copy));
-          }
-          return response;
-        });
-      })
+      caches.match(request).then(cached => cached || fetch(request).then(response => {
+        if (response.ok) caches.open(CACHE_NAME).then(c => c.put(request, response.clone()));
+        return response;
+      }))
     );
     return;
   }
@@ -113,18 +98,13 @@ self.addEventListener('fetch', event => {
   event.respondWith(
     fetch(request)
       .then(response => {
-        if (response.ok) {
-          const cache_copy = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(request, cache_copy));
-        }
+        if (response.ok) caches.open(CACHE_NAME).then(c => c.put(request, response.clone()));
         return response;
       })
       .catch(() => caches.match(request))
   );
 });
 """
-    
-    response = HttpResponse(service_worker_code, content_type='application/javascript')
+    response = HttpResponse(sw_code, content_type='application/javascript')
     response['Cache-Control'] = 'public, max-age=3600'
-    response.status_code = 200
     return response

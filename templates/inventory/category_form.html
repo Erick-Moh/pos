@@ -1,8 +1,8 @@
 {% extends "base.html" %}
-{% block title %}{{ action }} Category | {{ sys.business_name }}{% endblock %}
+{% block title %}{{ action }} Category | {{ sys.business_name|default:"GetCore POS" }}{% endblock %}
 {% block breadcrumb %}
-    <a href="/{{ tenant.slug }}/inventory/" class="text-muted text-decoration-none">Inventory</a> /
-    <a href="/{{ tenant.slug }}/inventory/categories/" class="text-muted text-decoration-none">Categories</a>
+    <a href="/inventory/" class="text-muted text-decoration-none">Inventory</a> /
+    <a href="/inventory/categories/" class="text-muted text-decoration-none">Categories</a>
     / {{ action }}
 {% endblock %}
 
@@ -58,7 +58,7 @@
                     <button type="submit" class="btn btn-nexus px-5">
                         <i class="bi bi-check-lg me-1"></i>Save Category
                     </button>
-                    <a href="/{{ tenant.slug }}/inventory/categories/" class="btn btn-outline-secondary px-4">Cancel</a>
+                    <a href="/inventory/categories/" class="btn btn-outline-secondary px-4">Cancel</a>
                 </div>
             </form>
         </div>

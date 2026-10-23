@@ -34,16 +34,17 @@ INSTALLED_APPS = [
     'django_celery_beat',
 
     # GetCore Apps
-    'tenants',
     'platform_app',
     'users',
     'inventory',
     'pos',
     'finance',
     'settings_app',
+    'backups',
 ]
 
 MIDDLEWARE = [
+    'core.exception_middleware.AppExceptionMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -51,8 +52,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    # Resolve tenant from URL slug → sets request.tenant
-    'tenants.middleware.TenantMiddleware',
     # Force users to change credentials on first login
     'users.middleware.ForceCredentialChangeMiddleware',
 ]
@@ -72,7 +71,6 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 # Custom context processors
                 'settings_app.context_processors.system_settings',
-                'tenants.context_processors.tenant',
                 'platform_app.context_processors.notifications',
             ],
         },
@@ -137,10 +135,8 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Login / Logout — tenant-scoped, handled in middleware/views
-# LOGIN_URL cannot be a simple path in multi-tenant mode;
-# ForceCredentialChangeMiddleware handles redirects per tenant.
-LOGIN_URL = '/login-required/'   # fallback only — middleware handles real redirects
+# Login / Logout
+LOGIN_URL = '/login/'
 DEFAULT_USER_PASSWORD = config['DEFAULT_USER_PASSWORD']
 DEFAULT_USER_PIN = config['DEFAULT_USER_PIN']
 SITE_URL = config['SITE_URL']
@@ -171,25 +167,17 @@ CELERY_ENABLE_UTC = True
 CELERY_TASK_ACKS_LATE = True
 CELERY_WORKER_PREFETCH_MULTIPLIER = 1
 
+# ── Cloudflare Turnstile ────────────────────────────────────────────────
+TURNSTILE_SITE_KEY   = config.get('TURNSTILE_SITE_KEY', '')
+TURNSTILE_SECRET_KEY = config.get('TURNSTILE_SECRET_KEY', '')
+
 # ── Celery Beat Schedule ────────────────────────────────────────────────
-# These are the DEFAULTS. You can also manage beat schedules through the
-# Django admin → Periodic Tasks (django-celery-beat).
+# Manage periodic tasks via Django admin → Periodic Tasks (django-celery-beat).
 from celery.schedules import crontab
 
 CELERY_BEAT_SCHEDULE = {
-    # Run daily at 01:00 EAT — deactivate tenants whose trial has expired
-    'deactivate-expired-trial-tenants': {
-        'task': 'platform_app.tasks.deactivate_expired_trial_tenants',
-        'schedule': crontab(hour=1, minute=0),
-    },
-    # Run daily at 01:15 EAT — deactivate paid tenants that haven't paid
-    'deactivate-unpaid-tenants': {
-        'task': 'platform_app.tasks.deactivate_unpaid_tenants',
-        'schedule': crontab(hour=1, minute=15),
-    },
-    # Run daily at 08:00 EAT — send trial expiry reminders (5 days & 2 days before)
-    'send-trial-expiry-reminders': {
-        'task': 'platform_app.tasks.send_trial_expiry_reminders',
-        'schedule': crontab(hour=8, minute=0),
+    'nightly-backup': {
+        'task': 'backups.tasks.nightly_backup',
+        'schedule': crontab(hour=0, minute=0),
     },
 }

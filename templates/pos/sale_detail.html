@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load humanize %}
-{% block title %}Sale {{ sale.invoice_number }} | {{ sys.business_name }}{% endblock %}
-{% block breadcrumb %}<a href="/{{ tenant.slug }}/pos/sales/" class="text-muted text-decoration-none">Sales</a> / {{ sale.invoice_number }}{% endblock %}
+{% block title %}Sale {{ sale.invoice_number }} | {{ sys.business_name|default:"GetCore POS" }}{% endblock %}
+{% block breadcrumb %}<a href="/pos/sales/" class="text-muted text-decoration-none">Sales</a> / {{ sale.invoice_number }}{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
@@ -9,11 +9,11 @@
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h4 class="fw-bold mb-0">{{ sale.invoice_number }}</h4>
             <div class="d-flex gap-2">
-                <a href="/{{ tenant.slug }}/pos/receipt/{{ sale.pk }}/" class="btn btn-outline-secondary" target="_blank">
+                <a href="/pos/receipt/{{ sale.pk }}/" class="btn btn-outline-secondary" target="_blank">
                     <i class="bi bi-printer me-1"></i>Print
                 </a>
                 {% if user.is_admin_role and sale.status == 'completed' %}
-                <a href="/{{ tenant.slug }}/pos/sales/{{ sale.pk }}/void/" class="btn btn-outline-danger">
+                <a href="/pos/sales/{{ sale.pk }}/void/" class="btn btn-outline-danger">
                     <i class="bi bi-x-circle me-1"></i>Void
                 </a>
                 {% endif %}
@@ -77,7 +77,28 @@
                             {% endif %}
                             <tr><td class="text-muted">VAT</td><td class="text-end">{{ sys.currency_symbol }} {{ sale.vat_amount|floatformat:2|intcomma }}</td></tr>
                             <tr class="fw-bold border-top"><td>TOTAL</td><td class="text-end fs-5" style="color:var(--nexus-primary);">{{ sys.currency_symbol }} {{ sale.total_amount|floatformat:2|intcomma }}</td></tr>
+                            {% if sale.credit_portion > 0 and sale.amount_tendered > 0 %}
+                            <tr><td class="text-muted">{{ sale.get_payment_method_display }} Paid</td><td class="text-end">{{ sys.currency_symbol }} {{ sale.amount_tendered|floatformat:2|intcomma }}</td></tr>
+                            {% elif sale.amount_tendered > 0 %}
                             <tr><td class="text-muted">{{ sale.get_payment_method_display }}</td><td class="text-end">{{ sys.currency_symbol }} {{ sale.amount_tendered|floatformat:2|intcomma }}</td></tr>
+                            {% endif %}
+                            {% if sale.credit_portion > 0 %}
+                            <tr>
+                                <td class="text-warning fw-medium">
+                                    Credit Deferred
+                                    {% if sale.credit_due_date %}<div class="small text-muted">Due: {{ sale.credit_due_date|date:"d M Y" }}</div>{% endif %}
+                                </td>
+                                <td class="text-end text-warning fw-medium">{{ sys.currency_symbol }} {{ sale.credit_portion|floatformat:2|intcomma }}</td>
+                            </tr>
+                            {% if sale.credit_paid %}
+                            <tr><td class="text-success small">Credit Settled</td><td class="text-end text-success small">✓ Paid</td></tr>
+                            {% else %}
+                            <tr class="fw-semibold">
+                                <td class="text-danger">Balance Due</td>
+                                <td class="text-end text-danger">{{ sys.currency_symbol }} {{ sale.balance_due|floatformat:2|intcomma }}</td>
+                            </tr>
+                            {% endif %}
+                            {% endif %}
                             {% if sale.change_given > 0 %}
                             <tr><td class="text-muted">Change</td><td class="text-end">{{ sys.currency_symbol }} {{ sale.change_given|floatformat:2|intcomma }}</td></tr>
                             {% endif %}
